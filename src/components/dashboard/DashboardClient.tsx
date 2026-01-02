@@ -1,0 +1,264 @@
+
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { MaintenanceTask, ServiceHistory } from '@/lib/types';
+import Header from './Header';
+import StatsCard from './StatsCard';
+import AiDiagnosis from './AiDiagnosis';
+import MaintenanceList from './MaintenanceList';
+import MileageUpdateModal from './MileageUpdateModal';
+import InvoiceScanModal from './InvoiceScanModal';
+import { getAiDiagnosis } from '@/ai/flows/ai-powered-diagnosis';
+import { analyzeInvoice as analyzeInvoiceFlow } from '@/ai/flows/invoice-analysis';
+import { speakMaintenanceAlerts } from '@/ai/flows/speak-maintenance-alerts';
+import { useToast } from "@/hooks/use-toast"
+import { calculateMaintenanceStatus, formatMileage } from '@/lib/utils';
+
+interface DashboardClientProps {
+  carImageUrl: string;
+  maintenanceTasks: MaintenanceTask[];
+}
+
+export default function DashboardClient({ carImageUrl, maintenanceTasks }: DashboardClientProps) {
+  const [currentMileage, setCurrentMileage] = useLocalStorage('mb_mileage', 47713);
+  const [serviceHistory, setServiceHistory] = useLocalStorage<ServiceHistory>('mb_history', {});
+
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
+
+  const [aiDiagnosis, setAiDiagnosis] = useState("");
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [invoiceFeedback, setInvoiceFeedback] = useState("");
+
+  const [isClient, setIsClient] = useState(false);
+
+  const { toast } = useToast();
+
+  // Keep a ref for the audio object to prevent memory leaks and manage playback
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    setIsClient(true);
+    return () => {
+      // Cleanup audio on unmount
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Performance Optimization: Memoize the sorted tasks list
+  const sortedTasks = React.useMemo(() => {
+    return [...maintenanceTasks].sort((a, b) => {
+      const statusA = calculateMaintenanceStatus(serviceHistory[a.id] || 0, a.interval, currentMileage);
+      const statusB = calculateMaintenanceStatus(serviceHistory[b.id] || 0, b.interval, currentMileage);
+
+      if (statusA.status === 'RETARD' && statusB.status !== 'RETARD') return -1;
+      if (statusB.status === 'RETARD' && statusA.status !== 'RETARD') return 1;
+      if (statusA.status === 'PROCHE' && statusB.status === 'OK') return -1;
+      if (statusB.status === 'PROCHE' && statusA.status === 'OK') return 1;
+
+      return statusA.remaining - statusB.remaining;
+    });
+  }, [maintenanceTasks, serviceHistory, currentMileage]);
+
+  const handleAiDiagnosis = async () => {
+    setIsDiagnosing(true);
+    setAiDiagnosis("");
+
+    const tasksStatus = sortedTasks.map(t => {
+      const lastDone = serviceHistory[t.id] || 0;
+      const statusData = calculateMaintenanceStatus(lastDone, t.interval, currentMileage);
+      return `- ${t.name}: ${statusData.remaining}km restants (${statusData.status}, Dernier fait à ${lastDone}km)`;
+    }).join('\n');
+
+    try {
+      const result = await getAiDiagnosis({ currentMileage, tasksStatus });
+      setAiDiagnosis(result.diagnosis);
+    } catch (error) {
+      setAiDiagnosis("Impossible de contacter l'assistant expert pour le moment.");
+      toast({
+        variant: "destructive",
+        title: "Erreur d'analyse IA",
+        description: "La connexion avec l'assistant expert a échoué.",
+      });
+    } finally {
+      setIsDiagnosing(false);
+    }
+  };
+
+  const handleInvoiceFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // QA Fix: Limit size to 10MB to prevent browser memory issues with Large Data URIs
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Fichier trop volumineux",
+          description: "Veuillez sélectionner un fichier de moins de 10 Mo.",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onloadstart = () => setIsScanning(true);
+
+      reader.onloadend = () => {
+        setIsScanning(false);
+        setSelectedFile(reader.result as string);
+      };
+
+      reader.onerror = () => {
+        setIsScanning(false);
+        toast({
+          variant: "destructive",
+          title: "Erreur de lecture",
+          description: "Impossible de lire le fichier sélectionné.",
+        });
+      };
+
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const analyzeInvoice = async () => {
+    if (!selectedFile) return;
+    setIsScanning(true);
+    setInvoiceFeedback("");
+
+    try {
+      const result = await analyzeInvoiceFlow({ invoiceDataUri: selectedFile });
+      setInvoiceFeedback(result.analysis);
+    } catch (error) {
+      setInvoiceFeedback("Erreur lors de l'analyse. Veuillez réessayer.");
+      toast({
+        variant: "destructive",
+        title: "Erreur d'analyse",
+        description: "L'IA n'a pas pu traiter ce document.",
+      });
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const speakAlerts = async () => {
+    // Proactive memory check: stop current audio if needed
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    setIsSpeaking(true);
+    const criticalTasks = maintenanceTasks.filter(t => {
+      const lastDone = serviceHistory[t.id] || 0;
+      const nextDue = lastDone + t.interval;
+      return (nextDue - currentMileage) <= 2000;
+    });
+
+    let message = `Bonjour Sébastien. Votre Mercedes affiche ${formatMileage(currentMileage)}. `;
+    if (criticalTasks.length > 0) {
+      message += `Attention, vous avez ${criticalTasks.length} entretiens prioritaires : ${criticalTasks.map(t => t.name).join(' et ')}. Veuillez consulter votre garage à Soignies prochainement.`;
+    } else {
+      message += "Tous vos systèmes sont au vert. Bonne route.";
+    }
+
+    try {
+      const { media } = await speakMaintenanceAlerts(message);
+      const audio = new Audio(media);
+      audioRef.current = audio;
+      audio.onended = () => {
+        setIsSpeaking(false);
+        audioRef.current = null;
+      };
+      audio.play();
+    } catch (error) {
+      console.error("TTS error", error);
+      setIsSpeaking(false);
+      toast({
+        variant: "destructive",
+        title: "Erreur Audio",
+        description: "Impossible de générer l'alerte vocale.",
+      });
+    }
+  };
+
+  const updateMileage = (newMileage: number) => {
+    if (newMileage >= currentMileage) {
+      setCurrentMileage(newMileage);
+      setShowUpdateModal(false);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erreur de kilométrage",
+        description: "Le nouveau kilométrage doit être supérieur ou égal à l'actuel.",
+      });
+    }
+  };
+
+  const markDone = (id: string) => {
+    setServiceHistory({ ...serviceHistory, [id]: currentMileage });
+  };
+
+  const resetInvoiceScan = () => {
+    setSelectedFile(null);
+    setInvoiceFeedback("");
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-slate-900 font-sans pb-32">
+      <Header
+        carImageUrl={carImageUrl}
+        onScanClick={() => setShowScanModal(true)}
+      />
+
+      <div className="p-4 sm:p-6">
+        <StatsCard
+          currentMileage={currentMileage}
+          isClient={isClient}
+          isSpeaking={isSpeaking}
+          onUpdateClick={() => setShowUpdateModal(true)}
+          onSpeakClick={speakAlerts}
+        />
+      </div>
+
+      <AiDiagnosis
+        aiDiagnosis={aiDiagnosis}
+        isDiagnosing={isDiagnosing}
+        onDiagnoseClick={handleAiDiagnosis}
+      />
+
+      <MaintenanceList
+        tasks={sortedTasks}
+        currentMileage={currentMileage}
+        serviceHistory={serviceHistory}
+        onMarkDone={markDone}
+      />
+
+      <MileageUpdateModal
+        open={showUpdateModal}
+        onOpenChange={setShowUpdateModal}
+        currentMileage={currentMileage}
+        onUpdateMileage={updateMileage}
+      />
+
+      <InvoiceScanModal
+        open={showScanModal}
+        onOpenChange={setShowScanModal}
+        selectedFile={selectedFile}
+        isScanning={isScanning}
+        invoiceFeedback={invoiceFeedback}
+        onFileChange={handleInvoiceFile}
+        onAnalyze={analyzeInvoice}
+        onReset={resetInvoiceScan}
+      />
+    </div>
+  );
+}
