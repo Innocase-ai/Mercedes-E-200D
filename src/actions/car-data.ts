@@ -18,27 +18,73 @@ export interface CarData {
 // Current implementation is unauthenticated and exposed to resource exhaustion.
 
 export async function fetchMaintenanceTasks(): Promise<MaintenanceTask[]> {
-    // FORCE DEBUG RETURN
-    return [
-        {
-            id: 'service_a',
-            airtableId: 'recTest1',
-            name: 'Service A (Test Forcé)',
-            interval: 25000,
-            priceIndep: 220,
-            priceMB: 400,
-            description: 'Tâche forcée pour test affichage'
-        },
-        {
-            id: 'bva_9g',
-            airtableId: 'recTest2',
-            name: 'Vidange BVA 9G-Tronic',
-            interval: 125000,
-            priceIndep: 400,
-            priceMB: 600,
-            description: 'Vidange boîte'
+    console.log("Fetching maintenance tasks from Airtable...");
+    if (!base) {
+        console.error("fetchMaintenanceTasks: Airtable base not initialized.");
+        return [];
+    }
+
+    try {
+        const records = await base(TASKS_TABLE_NAME).select().all();
+        console.log(`fetchMaintenanceTasks: Found ${records.length} records in table ${TASKS_TABLE_NAME}`);
+
+        if (records.length === 0) {
+            console.warn("fetchMaintenanceTasks: Table is empty, returning temporary debug task");
+            return [{
+                id: 'no_tasks_found',
+                name: 'Aucune tâche trouvée dans Airtable',
+                interval: 0,
+                priceIndep: 0,
+                priceMB: 0,
+                description: 'Vérifiez que la table TachesMaintenance contient bien des données.'
+            }];
         }
-    ];
+
+        return records.map(record => ({
+            id: (record.get('TaskID') as string) || record.id,
+            airtableId: record.id,
+            name: (record.get('Nom') as string) || 'Tâche sans nom',
+            interval: (record.get('Intervalle') as number) || 0,
+            priceIndep: (record.get('Prix Independant') as number) || 0,
+            priceMB: (record.get('Prix Mercedes') as number) || 0,
+            description: (record.get('Description') as string) || '',
+        }));
+    } catch (error) {
+        console.error(`fetchMaintenanceTasks Error:`, error);
+        return [];
+    }
+}
+
+export async function fetchCarData(): Promise<CarData | null> {
+    if (!base) {
+        return null;
+    }
+
+    try {
+        // 1. Fetch Mileage from Vehicules
+        const vehicleRecords = await base(TABLE_NAME).select({ maxRecords: 1 }).firstPage();
+        const mileage = vehicleRecords.length > 0 ? (vehicleRecords[0].get('Kilometrage Actuel') as number) : 0;
+
+        // 2. Fetch History from HistoriqueEntretiens
+        const historyRecords = await base(HISTORY_TABLE_NAME).select().all();
+
+        const history: ServiceHistory = {};
+        historyRecords.forEach(record => {
+            const taskId = record.get('TacheID') as string;
+            const km = record.get('Kilometrage Realise') as number;
+
+            if (taskId && km) {
+                if (!history[taskId] || km > history[taskId]) {
+                    history[taskId] = km;
+                }
+            }
+        });
+
+        return { mileage, history };
+    } catch (error) {
+        console.error("fetchCarData Error:", error);
+        return null;
+    }
 }
 
 export async function saveCarData(mileage: number, history: ServiceHistory): Promise<boolean> {

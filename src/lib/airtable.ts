@@ -10,8 +10,17 @@ export const TASKS_TABLE_NAME = 'TachesMaintenance';
 
 let base: Airtable.Base | null = null;
 
+console.log("Checking Airtable Config:", {
+    hasApiKey: !!process.env.AIRTABLE_API_KEY,
+    hasBaseId: !!process.env.AIRTABLE_BASE_ID,
+    env: process.env.NODE_ENV
+});
+
 if (AIRTABLE_API_KEY && AIRTABLE_BASE_ID) {
     base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(AIRTABLE_BASE_ID);
+    console.log("Airtable Base Initialized Successfully");
+} else {
+    console.error("Airtable Base NOT Initialized - Missing Env Variables");
 }
 
 export { base };
