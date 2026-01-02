@@ -46,9 +46,11 @@ En tant qu'expert Mercedes (Assyst Plus) :
 2. Crée un libellé court (ex: "Entretien Service B", "Assurance 2024").
 3. Identifie le type parmi : Entretien, Taxe, Assurance, Réparation, Autre.
 4. **Vérification de Conformité (CRITIQUE)** :
-   - Si c'est une vidange moteur : L'huile **DOIT** être à la norme **MB 229.52** (impératif pour OM 654).
-   - Si c'est un entretien général : Vérifie si le liquide de frein (tous les 2 ans) ou la vidange de boîte 9G (tous les 5 ans) est mentionné si l'échéance temporelle semble proche (véhicule de 2017/2018).
-5. Rédige une analyse qualitative courte (points positifs, oublis éventuels, conformité des pièces).
+   - Vidange moteur : L'huile **DOIT** être à la norme **MB 229.52**. Si l'intervalle affiché dépasse 15 000 km, signale que c'est trop long pour l'OM654.
+   - Boîte 9G-Tronic : Vérifie la norme d'huile **MB 236.17** (le carter doit aussi être listé comme pièce remplacée).
+   - AdBlue : Vérifie si un additif anti-cristallisant a été facturé.
+   - Distribution : Si une mention de "bruit haut moteur" ou de "culbuteurs" apparaît, l'alerte doit être maximale.
+5. Rédige une analyse qualitative courte (points positifs, conformité technique Mercedes, oublis éventuels).
 
 Réponds en français avec précision technique.
 
