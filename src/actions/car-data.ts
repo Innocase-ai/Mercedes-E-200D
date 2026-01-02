@@ -1,7 +1,7 @@
 'use server';
 
-import { base, TABLE_NAME, TASKS_TABLE_NAME, HISTORY_TABLE_NAME, INVOICES_TABLE_NAME } from '@/lib/airtable';
-import { MaintenanceTask, ServiceHistory, Expense } from '@/lib/types';
+import { TABLE_NAME, HISTORY_TABLE_NAME, TASKS_TABLE_NAME, INVOICES_TABLE_NAME, base } from '@/lib/airtable';
+import { MaintenanceTask, ServiceHistory, Expense, MaintenanceRecord } from '@/lib/types';
 import { z } from 'zod';
 
 const MileageSchema = z.number().min(0).max(1000000);
@@ -200,6 +200,36 @@ export async function fetchExpenses(): Promise<Expense[]> {
         }));
     } catch (error) {
         console.error("fetchExpenses Error:", error);
+        return [];
+    }
+}
+
+export async function fetchMaintenanceHistory(): Promise<MaintenanceRecord[]> {
+    console.log("Server Action: Fetching maintenance history...");
+    if (!base) return [];
+
+    try {
+        const [historyRecords, taskRecords] = await Promise.all([
+            base(HISTORY_TABLE_NAME).select({
+                sort: [{ field: 'Kilometrage Realise', direction: 'desc' }]
+            }).all(),
+            fetchMaintenanceTasks()
+        ]);
+
+        const taskMap = new Map(taskRecords.map(t => [t.id, t.name]));
+
+        return historyRecords.map(record => {
+            const taskId = record.get('TacheID') as string;
+            return {
+                id: record.id,
+                taskId,
+                taskName: taskMap.get(taskId) || 'Tâche inconnue',
+                mileage: (record.get('Kilometrage Realise') as number) || 0,
+                date: (record.get('Date') as string) || undefined
+            };
+        });
+    } catch (error) {
+        console.error("fetchMaintenanceHistory Error:", error);
         return [];
     }
 }

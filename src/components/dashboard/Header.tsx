@@ -1,6 +1,7 @@
 import Image from 'next/image';
-import { FileSearch } from 'lucide-react';
+import { FileSearch, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 interface HeaderProps {
   carImageUrl: string;
@@ -28,14 +29,25 @@ export default function Header({ carImageUrl, onScanClick }: HeaderProps) {
           <h1 className="text-white text-4xl sm:text-5xl font-black italic tracking-tighter drop-shadow-md font-headline">E 200 d</h1>
           <p className="text-primary-foreground/70 text-xs sm:text-[12px] font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] drop-shadow-sm">Mercedes-Benz • Soignies</p>
         </div>
-        <Button
-          onClick={onScanClick}
-          size="icon"
-          className="bg-primary/90 backdrop-blur-md border border-primary-foreground/20 h-16 w-16 sm:h-20 sm:w-20 p-4 rounded-2xl text-white shadow-2xl active:scale-95 transition-all"
-          title="Scanner une facture"
-        >
-          <FileSearch className="w-6 h-6 sm:w-7 sm:w-7" />
-        </Button>
+        <div className="flex gap-3">
+          <Link href="/history">
+            <Button
+              size="icon"
+              className="bg-white/10 backdrop-blur-md border border-white/20 h-16 w-16 sm:h-20 sm:w-20 p-4 rounded-2xl text-white shadow-2xl active:scale-95 transition-all"
+              title="Historique des entretiens"
+            >
+              <History className="w-6 h-6 sm:w-7 sm:h-7" />
+            </Button>
+          </Link>
+          <Button
+            onClick={onScanClick}
+            size="icon"
+            className="bg-primary/90 backdrop-blur-md border border-primary-foreground/20 h-16 w-16 sm:h-20 sm:w-20 p-4 rounded-2xl text-white shadow-2xl active:scale-95 transition-all"
+            title="Scanner une facture"
+          >
+            <FileSearch className="w-6 h-6 sm:w-7 sm:h-7" />
+          </Button>
+        </div>
       </div>
     </header>
   );

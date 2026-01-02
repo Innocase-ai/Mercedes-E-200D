@@ -21,3 +21,11 @@ export interface Expense {
   analysis: string;
   isConform: boolean;
 }
+
+export interface MaintenanceRecord {
+  id: string;
+  taskName: string;
+  mileage: number;
+  date?: string;
+  taskId: string;
+}
