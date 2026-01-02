@@ -11,6 +11,7 @@ import MaintenanceList from './MaintenanceList';
 import MileageUpdateModal from './MileageUpdateModal';
 import InvoiceScanModal from './InvoiceScanModal';
 import { getAiDiagnosis } from '@/ai/flows/ai-powered-diagnosis';
+import { fetchCarData, saveCarData } from '@/actions/car-data';
 import { analyzeInvoice as analyzeInvoiceFlow } from '@/ai/flows/invoice-analysis';
 import { speakMaintenanceAlerts } from '@/ai/flows/speak-maintenance-alerts';
 import { useToast } from "@/hooks/use-toast"
@@ -53,6 +54,34 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
       }
     };
   }, []);
+
+  // Sync with Airtable
+  useEffect(() => {
+    const initCloudSync = async () => {
+      const cloudData = await fetchCarData();
+      if (cloudData) {
+        // If cloud data exists, it takes precedence (or we could merge, but simple overwrite is safer for now)
+        if (cloudData.mileage > 0) setCurrentMileage(cloudData.mileage);
+        if (Object.keys(cloudData.history).length > 0) setServiceHistory(cloudData.history);
+        console.log("Synced with Airtable");
+      }
+    };
+    initCloudSync();
+  }, []);
+
+  // Save to Airtable on changes (debounced)
+  useEffect(() => {
+    if (!isClient) return;
+
+    const timer = setTimeout(() => {
+      saveCarData(currentMileage, serviceHistory);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [currentMileage, serviceHistory, isClient]);
+
+
+  // ... (rest of code)
 
   // Performance Optimization: Memoize the sorted tasks list
   const sortedTasks = React.useMemo(() => {
@@ -191,9 +220,13 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
   };
 
   const updateMileage = (newMileage: number) => {
-    if (newMileage >= currentMileage) {
+    if (newMileage >= (currentMileage || 0)) {
       setCurrentMileage(newMileage);
       setShowUpdateModal(false);
+      toast({
+        title: "Compteur mis à jour",
+        description: `Le nouveau kilométrage (${newMileage.toLocaleString()} km) a été enregistré.`,
+      });
     } else {
       toast({
         variant: "destructive",

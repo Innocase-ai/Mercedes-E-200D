@@ -5,19 +5,23 @@ import { useState, useEffect } from 'react';
 export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
   // Use a state for the value, but avoid reading from localStorage during SSR
   const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [isMounted, setIsMounted] = useState(false);
 
+  // Once mounted, we can safely sync with localStorage
   useEffect(() => {
-    // Component mounted, safe to read from localStorage
+    setIsMounted(true);
     try {
       const item = window.localStorage.getItem(key);
       if (item) {
         setStoredValue(JSON.parse(item));
       }
     } catch (error) {
-      console.error(error);
+      console.warn(`Error reading localStorage key "${key}":`, error);
     }
+  }, [key]);
 
-    // Listener for cross-tab synchronization
+  // Listener for cross-tab synchronization
+  useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === key && e.newValue !== null) {
         try {
@@ -34,13 +38,18 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T 
 
   const setValue = (value: T | ((val: T) => T)) => {
     try {
+      // Allow value to be a function so we have same API as useState
       const valueToStore = value instanceof Function ? value(storedValue) : value;
+
+      // Save state
       setStoredValue(valueToStore);
+
+      // Save to local storage
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
     } catch (error) {
-      console.error(error);
+      console.error(`Error setting localStorage key "${key}":`, error);
     }
   };
 
