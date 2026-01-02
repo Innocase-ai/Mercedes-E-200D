@@ -17,88 +17,28 @@ export interface CarData {
 // by an authentication layer (e.g., Clerk, NextAuth, or session check).
 // Current implementation is unauthenticated and exposed to resource exhaustion.
 
-import * as fs from 'fs';
-import * as path from 'path';
-
-function logToFile(msg: string) {
-    const logPath = path.join(process.cwd(), 'debug_server.txt');
-    const timestamp = new Date().toISOString();
-    fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
-}
-
 export async function fetchMaintenanceTasks(): Promise<MaintenanceTask[]> {
-    logToFile("Fetching maintenance tasks...");
-    if (!base) {
-        logToFile("ERROR: base not initialized");
-        return [];
-    }
-
-    try {
-        const records = await base(TASKS_TABLE_NAME).select().all();
-        logToFile(`SUCCESS: Found ${records.length} tasks`);
-
-        if (records.length === 0) {
-            logToFile("Returning hardcoded fallback task");
-            return [{
-                id: 'debug_task',
-                name: 'TEST : Connexion Airtable échouée',
-                interval: 1000,
-                priceIndep: 0,
-                priceMB: 0,
-                description: 'Ceci est une tâche de test car Airtable n\'a renvoyé aucun résultat.'
-            }];
+    // FORCE DEBUG RETURN
+    return [
+        {
+            id: 'service_a',
+            airtableId: 'recTest1',
+            name: 'Service A (Test Forcé)',
+            interval: 25000,
+            priceIndep: 220,
+            priceMB: 400,
+            description: 'Tâche forcée pour test affichage'
+        },
+        {
+            id: 'bva_9g',
+            airtableId: 'recTest2',
+            name: 'Vidange BVA 9G-Tronic',
+            interval: 125000,
+            priceIndep: 400,
+            priceMB: 600,
+            description: 'Vidange boîte'
         }
-
-        return records.map(record => ({
-            id: (record.get('TaskID') as string) || record.id, // Use TaskID string if available for history matching
-            airtableId: record.id,
-            name: (record.get('Nom') as string) || 'Tâche sans nom',
-            interval: (record.get('Intervalle') as number) || 0,
-            priceIndep: (record.get('Prix Independant') as number) || 0,
-            priceMB: (record.get('Prix Mercedes') as number) || 0,
-            description: (record.get('Description') as string) || '',
-        }));
-    } catch (error) {
-        logToFile(`ERROR fetchMaintenanceTasks: ${error}`);
-        return [];
-    }
-}
-
-export async function fetchCarData(): Promise<CarData | null> {
-    logToFile("Fetching car data...");
-    if (!base) {
-        logToFile("ERROR: base not initialized in fetchCarData");
-        return null;
-    }
-
-    try {
-        // 1. Fetch Mileage from Vehicules
-        const vehicleRecords = await base(TABLE_NAME).select({ maxRecords: 1 }).firstPage();
-        const mileage = vehicleRecords.length > 0 ? (vehicleRecords[0].get('Kilometrage Actuel') as number) : 0;
-
-        // 2. Fetch History from HistoriqueEntretiens
-        const historyRecords = await base(HISTORY_TABLE_NAME).select().all();
-
-        const history: ServiceHistory = {};
-        historyRecords.forEach(record => {
-            const taskId = record.get('TacheID') as string;
-            const km = record.get('Kilometrage Realise') as number;
-
-            if (taskId && km) {
-                if (!history[taskId] || km > history[taskId]) {
-                    history[taskId] = km;
-                }
-            }
-        });
-
-        return { mileage, history };
-    } catch (error) {
-        console.error("fetchCarData Error:", {
-            message: error instanceof Error ? error.message : "Unknown error",
-            stack: error instanceof Error ? error.stack : undefined
-        });
-        return null; // Ensure we return null so UI knows something went wrong
-    }
+    ];
 }
 
 export async function saveCarData(mileage: number, history: ServiceHistory): Promise<boolean> {
@@ -174,8 +114,6 @@ export async function saveInvoice(data: any): Promise<boolean> {
         return true;
     } catch (error) {
         console.error(`saveInvoice Error (Table: ${INVOICES_TABLE_NAME}):`, error);
-        // Note: This might fail if the user hasn't added the new columns yet.
-        // I will try to fall back to just analysis if it fails.
         try {
             await base(INVOICES_TABLE_NAME).create([{
                 fields: {
