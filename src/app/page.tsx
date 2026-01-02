@@ -4,8 +4,10 @@ import DashboardClient from "@/components/dashboard/DashboardClient";
 import { fetchMaintenanceTasks } from "@/actions/car-data";
 
 export default async function Home() {
+  console.log("[SSR] Rendering Home Page...");
   const carImage = PlaceHolderImages.find(img => img.id === 'mercedes-e-class');
   const maintenanceTasks = await fetchMaintenanceTasks();
+  console.log(`[SSR] Fetched ${maintenanceTasks.length} tasks`);
 
   return (
     <DashboardClient
