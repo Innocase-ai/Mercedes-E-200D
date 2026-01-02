@@ -18,6 +18,12 @@ export interface CarData {
 // Current implementation is unauthenticated and exposed to resource exhaustion.
 
 export async function fetchMaintenanceTasks(): Promise<MaintenanceTask[]> {
+    console.log("[Airtable Debug] Checking environment variables...", {
+        hasApiKey: !!process.env.AIRTABLE_API_KEY,
+        hasBaseId: !!process.env.AIRTABLE_BASE_ID,
+        nodeEnv: process.env.NODE_ENV
+    });
+
     console.log("Fetching maintenance tasks from Airtable...");
     if (!base) {
         console.error("fetchMaintenanceTasks: Airtable base not initialized.");
