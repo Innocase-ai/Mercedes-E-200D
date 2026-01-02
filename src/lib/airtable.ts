@@ -3,7 +3,7 @@ import Airtable from 'airtable';
 export const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 export const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
 
-export const TABLE_NAME = 'CarStatus';
+export const TABLE_NAME = 'Vehicules';
 
 let base: Airtable.Base | null = null;
 

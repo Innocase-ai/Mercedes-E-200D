@@ -22,17 +22,21 @@ export async function fetchCarData(): Promise<CarData | null> {
         if (records.length === 0) return null;
 
         const record = records[0];
-        const mileage = record.get('Mileage') as number;
-        const historyString = record.get('History') as string;
+        // Updated field name to match Airtable
+        const mileage = record.get('Kilometrage Actuel') as number;
+        // const historyString = record.get('History') as string;
 
-        console.log("Server Action: Raw fetched data:", { mileage, historyString });
+        console.log("Server Action: Raw fetched data:", { mileage });
 
         let history = {};
+        // Temporarily commented out history logic as the field doesn't exist yet
+        /*
         try {
             if (historyString) history = JSON.parse(historyString);
         } catch (e) {
             console.error("Server Action: JSON parse error for history", e);
         }
+        */
 
         return { mileage, history };
     } catch (error) {
@@ -55,8 +59,8 @@ export async function saveCarData(mileage: number, history: Record<string, numbe
         console.log(`Server Action: Found ${records.length} records.`);
 
         const fields = {
-            'Mileage': mileage,
-            'History': JSON.stringify(history)
+            'Kilometrage Actuel': mileage,
+            // 'History': JSON.stringify(history) // Disabled until field is added
         };
 
         console.log("Server Action: Data to save:", fields);
