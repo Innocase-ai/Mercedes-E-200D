@@ -36,6 +36,19 @@ export async function fetchMaintenanceTasks(): Promise<MaintenanceTask[]> {
     try {
         const records = await base(TASKS_TABLE_NAME).select().all();
         logToFile(`SUCCESS: Found ${records.length} tasks`);
+
+        if (records.length === 0) {
+            logToFile("Returning hardcoded fallback task");
+            return [{
+                id: 'debug_task',
+                name: 'TEST : Connexion Airtable échouée',
+                interval: 1000,
+                priceIndep: 0,
+                priceMB: 0,
+                description: 'Ceci est une tâche de test car Airtable n\'a renvoyé aucun résultat.'
+            }];
+        }
+
         return records.map(record => ({
             id: (record.get('TaskID') as string) || record.id, // Use TaskID string if available for history matching
             airtableId: record.id,
