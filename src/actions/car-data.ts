@@ -1,83 +1,156 @@
 'use server';
 
-import { base, TABLE_NAME } from '@/lib/airtable';
+import { base, TABLE_NAME, TASKS_TABLE_NAME, HISTORY_TABLE_NAME, INVOICES_TABLE_NAME } from '@/lib/airtable';
+import { MaintenanceTask, ServiceHistory } from '@/lib/types';
+import { z } from 'zod';
+
+const MileageSchema = z.number().min(0).max(1000000);
+const HistorySchema = z.record(z.string(), z.number().min(0));
 
 // Define the shape of our data
 export interface CarData {
     mileage: number;
-    history: Record<string, number>;
+    history: ServiceHistory;
+}
+
+// SECURITY NOTE: In a production environment, all server actions MUST be protected
+// by an authentication layer (e.g., Clerk, NextAuth, or session check).
+// Current implementation is unauthenticated and exposed to resource exhaustion.
+
+export async function fetchMaintenanceTasks(): Promise<MaintenanceTask[]> {
+    console.log("Server Action: Fetching maintenance tasks...");
+    if (!base) {
+        console.error("fetchMaintenanceTasks: Airtable base not initialized.");
+        return [];
+    }
+
+    try {
+        const records = await base(TASKS_TABLE_NAME).select().all();
+        return records.map(record => ({
+            id: record.get('TaskID') as string,
+            name: (record.get('Nom') as string) || 'Tâche sans nom',
+            interval: (record.get('Intervalle') as number) || 0,
+            priceIndep: (record.get('Prix Independant') as number) || 0,
+            priceMB: (record.get('Prix Mercedes') as number) || 0,
+            description: (record.get('Description') as string) || '',
+        }));
+    } catch (error) {
+        console.error(`fetchMaintenanceTasks Error (Table: ${TASKS_TABLE_NAME}):`, error);
+        return [];
+    }
 }
 
 export async function fetchCarData(): Promise<CarData | null> {
-    console.log("Server Action: Fetching car data...");
+    console.log("Server Action: Fetching car data (Mileage & History)...");
     if (!base) {
-        console.warn("Server Action Warning: Base not initialized.");
+        console.error("fetchCarData: Airtable base not initialized.");
         return null;
     }
 
     try {
-        const records = await base(TABLE_NAME).select({ maxRecords: 1 }).firstPage();
-        console.log(`Server Action: Fetched ${records.length} records.`);
+        // 1. Fetch Mileage from Vehicules
+        const vehicleRecords = await base(TABLE_NAME).select({ maxRecords: 1 }).firstPage();
+        const mileage = vehicleRecords.length > 0 ? (vehicleRecords[0].get('Kilometrage Actuel') as number) : 0;
 
-        if (records.length === 0) return null;
+        // 2. Fetch History from HistoriqueEntretiens
+        const historyRecords = await base(HISTORY_TABLE_NAME).select().all();
 
-        const record = records[0];
-        // Updated field name to match Airtable
-        const mileage = record.get('Kilometrage Actuel') as number;
-        // const historyString = record.get('History') as string;
+        const history: ServiceHistory = {};
+        historyRecords.forEach(record => {
+            const taskId = record.get('TacheID') as string;
+            const km = record.get('Kilometrage Realise') as number;
 
-        console.log("Server Action: Raw fetched data:", { mileage });
-
-        let history = {};
-        // Temporarily commented out history logic as the field doesn't exist yet
-        /*
-        try {
-            if (historyString) history = JSON.parse(historyString);
-        } catch (e) {
-            console.error("Server Action: JSON parse error for history", e);
-        }
-        */
+            if (taskId && km) {
+                if (!history[taskId] || km > history[taskId]) {
+                    history[taskId] = km;
+                }
+            }
+        });
 
         return { mileage, history };
     } catch (error) {
-        console.error("Server Action: Airtable fetch error:", error);
-        return null;
+        console.error("fetchCarData Error:", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
+        return null; // Ensure we return null so UI knows something went wrong
     }
 }
 
-export async function saveCarData(mileage: number, history: Record<string, number>): Promise<boolean> {
-    console.log("Server Action: Attempting to save car data...");
+export async function saveCarData(mileage: number, history: ServiceHistory): Promise<boolean> {
+    console.log("Server Action: Saving car data...");
 
     if (!base) {
-        console.error("Server Action Error: Airtable base is not initialized. Check API KEY and BASE ID.");
+        console.error("saveCarData: Airtable base not initialized.");
         return false;
     }
 
     try {
-        console.log(`Server Action: Querying table '${TABLE_NAME}'...`);
-        const records = await base(TABLE_NAME).select({ maxRecords: 1 }).firstPage();
-        console.log(`Server Action: Found ${records.length} records.`);
+        // Validate Inputs
+        MileageSchema.parse(mileage);
+        HistorySchema.parse(history);
 
-        const fields = {
-            'Kilometrage Actuel': mileage,
-            // 'History': JSON.stringify(history) // Disabled until field is added
-        };
-
-        console.log("Server Action: Data to save:", fields);
-
-        if (records.length === 0) {
-            console.log("Server Action: Creating new record...");
-            await base(TABLE_NAME).create([
-                { fields }
-            ]);
+        // 1. Update Mileage in Vehicules
+        const vehicleRecords = await base(TABLE_NAME).select({ maxRecords: 1 }).firstPage();
+        if (vehicleRecords.length === 0) {
+            await base(TABLE_NAME).create([{ fields: { 'Kilometrage Actuel': mileage } }]);
         } else {
-            console.log(`Server Action: Updating record ${records[0].id}...`);
-            await base(TABLE_NAME).update(records[0].id, fields);
+            const currentKm = vehicleRecords[0].get('Kilometrage Actuel') as number;
+            if (currentKm !== mileage) {
+                await base(TABLE_NAME).update(vehicleRecords[0].id, { 'Kilometrage Actuel': mileage });
+            }
         }
-        console.log("Server Action: Save successful!");
+
+        // 2. Sync History to HistoriqueEntretiens
+        const existingHistory = await base(HISTORY_TABLE_NAME).select().all();
+
+        for (const [taskId, km] of Object.entries(history)) {
+            const exists = existingHistory.some(r =>
+                r.get('TacheID') === taskId &&
+                r.get('Kilometrage Realise') === km
+            );
+
+            if (!exists) {
+                await base(HISTORY_TABLE_NAME).create([{
+                    fields: {
+                        'TacheID': taskId,
+                        'Kilometrage Realise': km
+                    }
+                }]);
+            }
+        }
+
         return true;
     } catch (error) {
-        console.error("Server Action: Airtable API Error:", error);
+        if (error instanceof z.ZodError) {
+            console.error("saveCarData Validation Error:", error.issues);
+        } else {
+            console.error("saveCarData Critical Error:", error);
+        }
         return false;
     }
 }
+
+export async function saveInvoice(analysis: string): Promise<boolean> {
+    console.log("Server Action: Saving invoice...");
+    if (!base) return false;
+
+    if (!analysis || analysis.trim() === "") {
+        console.error("saveInvoice: Empty analysis provided.");
+        return false;
+    }
+
+    try {
+        await base(INVOICES_TABLE_NAME).create([{
+            fields: {
+                'Analyse': analysis,
+                'Date Analyse': new Date().toISOString().split('T')[0]
+            }
+        }]);
+        return true;
+    } catch (error) {
+        console.error(`saveInvoice Error (Table: ${INVOICES_TABLE_NAME}):`, error);
+        return false;
+    }
+}
+

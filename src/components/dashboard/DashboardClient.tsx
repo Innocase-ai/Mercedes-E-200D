@@ -11,7 +11,7 @@ import MaintenanceList from './MaintenanceList';
 import MileageUpdateModal from './MileageUpdateModal';
 import InvoiceScanModal from './InvoiceScanModal';
 import { getAiDiagnosis } from '@/ai/flows/ai-powered-diagnosis';
-import { fetchCarData, saveCarData } from '@/actions/car-data';
+import { fetchCarData, saveCarData, saveInvoice } from '@/actions/car-data';
 import { analyzeInvoice as analyzeInvoiceFlow } from '@/ai/flows/invoice-analysis';
 import { speakMaintenanceAlerts } from '@/ai/flows/speak-maintenance-alerts';
 import { useToast } from "@/hooks/use-toast"
@@ -187,6 +187,10 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
     try {
       const result = await analyzeInvoiceFlow({ invoiceDataUri: selectedFile });
       setInvoiceFeedback(result.analysis);
+
+      // Save analysis to Airtable
+      await saveInvoice(result.analysis);
+
     } catch (error) {
       setInvoiceFeedback("Erreur lors de l'analyse. Veuillez réessayer.");
       toast({

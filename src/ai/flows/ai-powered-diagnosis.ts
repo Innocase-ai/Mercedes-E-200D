@@ -56,7 +56,16 @@ const aiDiagnosisFlow = ai.defineFlow(
     outputSchema: AiDiagnosisOutputSchema,
   },
   async input => {
-    const { output } = await aiDiagnosisPrompt(input);
-    return output!;
+    try {
+      const { output } = await aiDiagnosisPrompt(input);
+      if (!output) throw new Error("No output from diagnosis prompt");
+      return output;
+    } catch (error) {
+      console.error("aiDiagnosisFlow Error:", error);
+      return {
+        diagnosis: "L'assistant expert a rencontré une difficulté technique. Veuillez vérifier vos données manuellement.",
+      };
+    }
   }
 );
+

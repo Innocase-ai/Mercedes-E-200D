@@ -56,7 +56,7 @@ export default function MaintenanceItem({ task, currentMileage, serviceHistory, 
             <CardDescription className="text-[11px] sm:text-xs text-slate-400 font-bold uppercase tracking-tight opacity-80">{task.description}</CardDescription>
           </div>
         </div>
-        <Badge className={`${colorClass} text-white text-[9px] sm:text-[10px] font-black px-3 py-1 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl uppercase tracking-widest shadow-lg shadow-slate-100`}>
+        <Badge className={`${colorClass} text-white text-[11px] sm:text-[10px] font-black px-3 py-1 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl uppercase tracking-widest shadow-lg shadow-slate-100`}>
           {status}
         </Badge>
       </CardHeader>
@@ -64,7 +64,7 @@ export default function MaintenanceItem({ task, currentMileage, serviceHistory, 
       <CardContent className="p-0">
         <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-8 mb-6 px-1">
           <div className="flex-1">
-            <div className="flex justify-between text-[10px] sm:text-[11px] mb-2 sm:mb-3 text-slate-300 font-black uppercase tracking-tighter">
+            <div className="flex justify-between text-[11px] sm:text-[11px] mb-2 sm:mb-3 text-slate-300 font-black uppercase tracking-tighter">
               <span>État de la pièce</span>
               <span>Échéance : {isClient ? formatMileage(nextDue) : `${nextDue} km`}</span>
             </div>
@@ -74,7 +74,7 @@ export default function MaintenanceItem({ task, currentMileage, serviceHistory, 
             <span className={`text-3xl sm:text-4xl font-black tracking-tighter leading-none ${remaining <= 0 ? 'text-red-500' : 'text-slate-900'}`}>
               {isClient ? Math.max(0, remaining).toLocaleString() : Math.max(0, remaining)}
             </span>
-            <p className="text-[10px] sm:text-[11px] text-slate-300 font-black uppercase tracking-widest mt-1 sm:mt-2">KM RESTANTS</p>
+            <p className="text-[11px] sm:text-[11px] text-slate-300 font-black uppercase tracking-widest mt-1 sm:mt-2">KM RESTANTS</p>
           </div>
         </div>
       </CardContent>
@@ -82,11 +82,11 @@ export default function MaintenanceItem({ task, currentMileage, serviceHistory, 
       <CardFooter className="flex justify-between items-center pt-4 sm:pt-6 border-t border-slate-50 p-0">
         <div className="flex gap-4 sm:gap-10">
           <div className="flex flex-col">
-            <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-black tracking-tighter mb-1">Garage Soignies</span>
+            <span className="text-[11px] sm:text-[10px] text-slate-400 uppercase font-black tracking-tighter mb-1">Garage Soignies</span>
             <span className="text-base sm:text-lg font-black text-slate-700">{formatCurrency(task.priceIndep)}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-black tracking-tighter mb-1">Concessionnaire</span>
+            <span className="text-[11px] sm:text-[10px] text-slate-400 uppercase font-black tracking-tighter mb-1">Concessionnaire</span>
             <span className="text-base sm:text-lg font-black text-primary">{formatCurrency(task.priceMB)}</span>
           </div>
         </div>

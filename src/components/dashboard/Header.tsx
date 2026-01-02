@@ -26,7 +26,7 @@ export default function Header({ carImageUrl, onScanClick }: HeaderProps) {
       <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-8 flex justify-between items-end">
         <div>
           <h1 className="text-white text-4xl sm:text-5xl font-black italic tracking-tighter drop-shadow-md font-headline">E 200 d</h1>
-          <p className="text-primary-foreground/70 text-[10px] sm:text-[12px] font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] drop-shadow-sm">Mercedes-Benz • Soignies</p>
+          <p className="text-primary-foreground/70 text-xs sm:text-[12px] font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] drop-shadow-sm">Mercedes-Benz • Soignies</p>
         </div>
         <Button
           onClick={onScanClick}

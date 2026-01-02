@@ -19,7 +19,7 @@ export default function StatsCard({ currentMileage, isClient, isSpeaking, onUpda
           <Gauge className="w-6 h-6 sm:w-9 sm:h-9 text-white" />
         </div>
         <div>
-          <p className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-black tracking-[0.15em] sm:tracking-[0.2em] mb-1">Kilométrage</p>
+          <p className="text-xs sm:text-[11px] text-slate-400 uppercase font-black tracking-[0.15em] sm:tracking-[0.2em] mb-1">Kilométrage</p>
           <p className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter leading-none">
             {isClient ? formatMileage(currentMileage) : `${currentMileage} KM`}
           </p>
