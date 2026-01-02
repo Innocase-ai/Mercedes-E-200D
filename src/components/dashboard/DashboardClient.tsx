@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+
 import { MaintenanceTask, ServiceHistory } from '@/lib/types';
 import Header from './Header';
 import StatsCard from './StatsCard';
@@ -23,8 +23,12 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ carImageUrl, maintenanceTasks }: DashboardClientProps) {
-  const [currentMileage, setCurrentMileage] = useLocalStorage('mb_mileage', 47713);
-  const [serviceHistory, setServiceHistory] = useLocalStorage<ServiceHistory>('mb_history', {});
+  // Use simple state instead of local storage
+  const [currentMileage, setCurrentMileage] = useState(47713);
+  const [serviceHistory, setServiceHistory] = useState<ServiceHistory>({});
+
+  // Track if we have synced with the server to prevent overwriting cloud data with defaults
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
@@ -55,7 +59,7 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
     };
   }, []);
 
-  // Sync with Airtable
+  // Sync with Airtable on mount
   useEffect(() => {
     const initCloudSync = async () => {
       const cloudData = await fetchCarData();
@@ -65,20 +69,37 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
         if (Object.keys(cloudData.history).length > 0) setServiceHistory(cloudData.history);
         console.log("Synced with Airtable");
       }
+      setIsDataLoaded(true); // Mark as loaded even if null (we accept default or cloud)
     };
     initCloudSync();
   }, []);
 
-  // Save to Airtable on changes (debounced)
+  // Save to Airtable on changes (debounced), ONLY if data is loaded
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !isDataLoaded) return;
 
-    const timer = setTimeout(() => {
-      saveCarData(currentMileage, serviceHistory);
+    const timer = setTimeout(async () => {
+      console.log("Auto-saving to Airtable...", { currentMileage });
+      const success = await saveCarData(currentMileage, serviceHistory);
+      if (success) {
+        console.log("Auto-save success");
+        toast({
+          title: "Sauvegarde réussie",
+          description: "Vos données ont été synchronisées avec Airtable.",
+          duration: 2000,
+        });
+      } else {
+        console.error("Auto-save failed");
+        toast({
+          variant: "destructive",
+          title: "Erreur de sauvegarde",
+          description: "Impossible de synchroniser avec Airtable.",
+        });
+      }
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [currentMileage, serviceHistory, isClient]);
+  }, [currentMileage, serviceHistory, isClient, isDataLoaded, toast]);
 
 
   // ... (rest of code)
