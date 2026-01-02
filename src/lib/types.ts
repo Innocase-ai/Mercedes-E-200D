@@ -1,5 +1,6 @@
 export interface MaintenanceTask {
   id: string;
+  airtableId?: string;
   name: string;
   interval: number;
   priceIndep: number;

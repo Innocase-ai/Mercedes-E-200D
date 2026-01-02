@@ -113,15 +113,19 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
 
   // Performance Optimization: Memoize the sorted tasks list
   const sortedTasks = React.useMemo(() => {
+    if (!maintenanceTasks || maintenanceTasks.length === 0) return [];
+
     return [...maintenanceTasks].sort((a, b) => {
-      const statusA = calculateMaintenanceStatus(serviceHistory[a.id] || 0, a.interval, currentMileage);
-      const statusB = calculateMaintenanceStatus(serviceHistory[b.id] || 0, b.interval, currentMileage);
+      const lastA = serviceHistory[a.id] || 0;
+      const lastB = serviceHistory[b.id] || 0;
+      const statusA = calculateMaintenanceStatus(lastA, a.interval, currentMileage);
+      const statusB = calculateMaintenanceStatus(lastB, b.interval, currentMileage);
 
-      if (statusA.status === 'RETARD' && statusB.status !== 'RETARD') return -1;
-      if (statusB.status === 'RETARD' && statusA.status !== 'RETARD') return 1;
-      if (statusA.status === 'PROCHE' && statusB.status === 'OK') return -1;
-      if (statusB.status === 'PROCHE' && statusA.status === 'OK') return 1;
+      const order: Record<string, number> = { 'RETARD': 0, 'PROCHE': 1, 'OK': 2 };
+      const valA = order[statusA.status] ?? 2;
+      const valB = order[statusB.status] ?? 2;
 
+      if (valA !== valB) return valA - valB;
       return statusA.remaining - statusB.remaining;
     });
   }, [maintenanceTasks, serviceHistory, currentMileage]);

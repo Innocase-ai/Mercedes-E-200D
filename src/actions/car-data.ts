@@ -17,17 +17,28 @@ export interface CarData {
 // by an authentication layer (e.g., Clerk, NextAuth, or session check).
 // Current implementation is unauthenticated and exposed to resource exhaustion.
 
+import * as fs from 'fs';
+import * as path from 'path';
+
+function logToFile(msg: string) {
+    const logPath = path.join(process.cwd(), 'debug_server.txt');
+    const timestamp = new Date().toISOString();
+    fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
+}
+
 export async function fetchMaintenanceTasks(): Promise<MaintenanceTask[]> {
-    console.log("Server Action: Fetching maintenance tasks...");
+    logToFile("Fetching maintenance tasks...");
     if (!base) {
-        console.error("fetchMaintenanceTasks: Airtable base not initialized.");
+        logToFile("ERROR: base not initialized");
         return [];
     }
 
     try {
         const records = await base(TASKS_TABLE_NAME).select().all();
+        logToFile(`SUCCESS: Found ${records.length} tasks`);
         return records.map(record => ({
-            id: record.id,
+            id: (record.get('TaskID') as string) || record.id, // Use TaskID string if available for history matching
+            airtableId: record.id,
             name: (record.get('Nom') as string) || 'Tâche sans nom',
             interval: (record.get('Intervalle') as number) || 0,
             priceIndep: (record.get('Prix Independant') as number) || 0,
@@ -35,15 +46,15 @@ export async function fetchMaintenanceTasks(): Promise<MaintenanceTask[]> {
             description: (record.get('Description') as string) || '',
         }));
     } catch (error) {
-        console.error(`fetchMaintenanceTasks Error (Table: ${TASKS_TABLE_NAME}):`, error);
+        logToFile(`ERROR fetchMaintenanceTasks: ${error}`);
         return [];
     }
 }
 
 export async function fetchCarData(): Promise<CarData | null> {
-    console.log("Server Action: Fetching car data (Mileage & History)...");
+    logToFile("Fetching car data...");
     if (!base) {
-        console.error("fetchCarData: Airtable base not initialized.");
+        logToFile("ERROR: base not initialized in fetchCarData");
         return null;
     }
 
