@@ -27,7 +27,7 @@ export async function fetchMaintenanceTasks(): Promise<MaintenanceTask[]> {
     try {
         const records = await base(TASKS_TABLE_NAME).select().all();
         return records.map(record => ({
-            id: record.get('TaskID') as string,
+            id: record.id,
             name: (record.get('Nom') as string) || 'Tâche sans nom',
             interval: (record.get('Intervalle') as number) || 0,
             priceIndep: (record.get('Prix Independant') as number) || 0,

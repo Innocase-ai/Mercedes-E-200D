@@ -14,23 +14,24 @@ export function calculateMaintenanceStatus(lastDone: number, interval: number, c
   let textColorClass = 'text-green-500';
   let status = 'OK';
 
+  const kmPerDay = 20000 / 365;
+  const daysRemaining = remaining / kmPerDay;
+
   if (remaining <= 0) {
     colorClass = 'bg-red-500';
     progressColorClass = 'bg-red-500';
     textColorClass = 'text-red-500';
     status = 'RETARD';
   }
-  else if (remaining <= 2000) {
+  else if (remaining <= 2000 || daysRemaining <= 60) {
     colorClass = 'bg-amber-500';
     progressColorClass = 'bg-amber-500';
     textColorClass = 'text-amber-500';
     status = 'PROCHE';
   }
 
-  const kmPerDay = 20000 / 365;
-  const daysRemaining = Math.max(0, remaining / kmPerDay);
   const date = new Date();
-  date.setDate(date.getDate() + daysRemaining);
+  date.setDate(date.getDate() + Math.max(0, daysRemaining));
   const estimatedDate = date.toLocaleDateString('fr-BE', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return { remaining, colorClass, status, nextDue, progressColorClass, textColorClass, estimatedDate };

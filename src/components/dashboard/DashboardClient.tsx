@@ -11,6 +11,7 @@ import MaintenanceList from './MaintenanceList';
 import MileageUpdateModal from './MileageUpdateModal';
 import InvoiceScanModal from './InvoiceScanModal';
 import ExpensesTable from './ExpensesTable';
+import MaintenanceAlert from './MaintenanceAlert';
 import { getAiDiagnosis } from '@/ai/flows/ai-powered-diagnosis';
 import { fetchCarData, saveCarData, saveInvoice, fetchExpenses } from '@/actions/car-data';
 import { analyzeInvoice as analyzeInvoiceFlow } from '@/ai/flows/invoice-analysis';
@@ -298,6 +299,12 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
           onSpeakClick={speakAlerts}
         />
       </div>
+
+      <MaintenanceAlert
+        tasks={maintenanceTasks}
+        currentMileage={currentMileage}
+        serviceHistory={serviceHistory}
+      />
 
       <AiDiagnosis
         aiDiagnosis={aiDiagnosis}
