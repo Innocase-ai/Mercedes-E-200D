@@ -38,18 +38,19 @@ const prompt = ai.definePrompt({
   name: 'analyzeInvoicePrompt',
   input: { schema: AnalyzeInvoiceInputSchema },
   output: { schema: AnalyzeInvoiceOutputSchema },
-  prompt: `Analyse ce document lié à une Mercedes E 200 d (W213, Moteur OM 654). 
-Le document peut être une facture d'entretien, une preuve d'assurance, une taxe de circulation ou une réparation.
+  prompt: `Analyse ce document lié à une Mercedes E 200 d (Moteur OM 654, Boîte 9G-Tronic). 
+Le document peut être une facture d'entretien, une assurance, une taxe ou une réparation.
 
-En tant qu'expert Mercedes et gestionnaire financier rigoureux :
-1. Extrais la date précise du document.
-2. Extrais le montant total TTC.
-3. Crée un libellé court et clair.
-4. Identifie le type de dépense.
-5. Si c'est un entretien : vérifie la conformité (Huile MB 229.51/52, filtres, etc.). Si c'est autre chose, vérifie si le document semble légitime pour ce véhicule.
-6. Rédige une analyse qualitative courte expliquant les points clés.
+En tant qu'expert Mercedes (Assyst Plus) :
+1. Extrais la date précise et le montant total TTC.
+2. Crée un libellé court (ex: "Entretien Service B", "Assurance 2024").
+3. Identifie le type parmi : Entretien, Taxe, Assurance, Réparation, Autre.
+4. **Vérification de Conformité (CRITIQUE)** :
+   - Si c'est une vidange moteur : L'huile **DOIT** être à la norme **MB 229.52** (impératif pour OM 654).
+   - Si c'est un entretien général : Vérifie si le liquide de frein (tous les 2 ans) ou la vidange de boîte 9G (tous les 5 ans) est mentionné si l'échéance temporelle semble proche (véhicule de 2017/2018).
+5. Rédige une analyse qualitative courte (points positifs, oublis éventuels, conformité des pièces).
 
-Réponds en français.
+Réponds en français avec précision technique.
 
 Document: {{media url=invoiceDataUri}}`,
 });
