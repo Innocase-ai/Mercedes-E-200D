@@ -39,6 +39,7 @@ export default function InvoiceScanModal({
                     <DialogTitle className="text-3xl font-black text-slate-800 flex items-center gap-4 italic tracking-tighter uppercase">
                         <FileSearch className="w-8 h-8 text-primary" /> Analyse Facture
                     </DialogTitle>
+                    <div className="sr-only">Téléchargez une photo ou un PDF de votre facture pour une analyse par l'IA expert Mercedes.</div>
                 </DialogHeader>
 
                 {!selectedFile ? (

@@ -13,7 +13,7 @@ import InvoiceScanModal from './InvoiceScanModal';
 import ExpensesTable from './ExpensesTable';
 import MaintenanceAlert from './MaintenanceAlert';
 import { getAiDiagnosis } from '@/ai/flows/ai-powered-diagnosis';
-import { fetchCarData, saveCarData, saveInvoice, fetchExpenses } from '@/actions/car-data';
+import { fetchMaintenanceTasks, fetchCarData, saveCarData, saveInvoice, fetchExpenses } from '@/actions/car-data';
 import { analyzeInvoice as analyzeInvoiceFlow } from '@/ai/flows/invoice-analysis';
 import { speakMaintenanceAlerts } from '@/ai/flows/speak-maintenance-alerts';
 import { useToast } from "@/hooks/use-toast"
@@ -24,11 +24,12 @@ interface DashboardClientProps {
   maintenanceTasks: MaintenanceTask[];
 }
 
-export default function DashboardClient({ carImageUrl, maintenanceTasks }: DashboardClientProps) {
+export default function DashboardClient({ carImageUrl, maintenanceTasks: initialTasks }: DashboardClientProps) {
   // Use simple state instead of local storage
   const [currentMileage, setCurrentMileage] = useState(47713);
   const [serviceHistory, setServiceHistory] = useState<ServiceHistory>({});
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>(initialTasks);
 
   // Track if we have synced with the server to prevent overwriting cloud data with defaults
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -67,19 +68,28 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
   // Sync with Airtable on mount
   useEffect(() => {
     const initCloudSync = async () => {
+      // 1. Fetch Maintenance Tasks if missing (client-side fallback for Cloud Run SSR issues)
+      if (maintenanceTasks.length === 0) {
+        console.log("Client Side: Re-fetching maintenance tasks...");
+        const tasks = await fetchMaintenanceTasks();
+        setMaintenanceTasks(tasks);
+      }
+
+      // 2. Fetch Car Data
       const cloudData = await fetchCarData();
       if (cloudData) {
         if (cloudData.mileage > 0) setCurrentMileage(cloudData.mileage);
         if (Object.keys(cloudData.history).length > 0) setServiceHistory(cloudData.history);
       }
 
+      // 3. Fetch Expenses
       const cloudExpenses = await fetchExpenses();
       setExpenses(cloudExpenses);
 
       setIsDataLoaded(true);
     };
     initCloudSync();
-  }, []);
+  }, [maintenanceTasks.length]);
 
   // Save to Airtable on changes (debounced), ONLY if data is loaded
   useEffect(() => {

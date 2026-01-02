@@ -35,6 +35,7 @@ export default function MileageUpdateModal({ open, onOpenChange, currentMileage,
         <div className="w-16 h-1.5 sm:w-20 sm:h-2 bg-slate-100 rounded-full mx-auto mb-8 sm:mb-12 sm:hidden" />
         <DialogHeader className="mb-8 sm:mb-12 text-center">
           <DialogTitle className="text-xl sm:text-2xl font-black text-center text-slate-800 tracking-tighter italic uppercase underline underline-offset-8 decoration-primary">Relevé Compteur</DialogTitle>
+          <div className="sr-only">Formulaire pour mettre à jour le kilométrage actuel de votre Mercedes.</div>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="relative mb-10 sm:mb-14 text-center">
