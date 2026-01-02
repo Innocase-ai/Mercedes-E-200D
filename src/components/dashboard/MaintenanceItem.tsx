@@ -36,7 +36,7 @@ export default function MaintenanceItem({ task, currentMileage, serviceHistory, 
   }, []);
 
   const lastDone = serviceHistory[task.id] || 0;
-  const { remaining, colorClass, status, nextDue, progressColorClass, textColorClass } =
+  const { remaining, colorClass, status, nextDue, progressColorClass, estimatedDate } =
     calculateMaintenanceStatus(lastDone, task.interval, currentMileage);
 
   const progressPercentage = Math.max(0, Math.min(100, (1 - remaining / task.interval) * 100));
@@ -56,9 +56,14 @@ export default function MaintenanceItem({ task, currentMileage, serviceHistory, 
             <CardDescription className="text-[11px] sm:text-xs text-slate-400 font-bold uppercase tracking-tight opacity-80">{task.description}</CardDescription>
           </div>
         </div>
-        <Badge className={`${colorClass} text-white text-[11px] sm:text-[10px] font-black px-3 py-1 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl uppercase tracking-widest shadow-lg shadow-slate-100`}>
-          {status}
-        </Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge className={`${colorClass} text-white text-[11px] sm:text-[10px] font-black px-3 py-1 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl uppercase tracking-widest shadow-lg shadow-slate-100`}>
+            {status}
+          </Badge>
+          {isClient && remaining > 0 && (
+            <span className="text-[10px] font-bold text-slate-400 uppercase italic">Prévu : {estimatedDate}</span>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="p-0">

@@ -1,7 +1,7 @@
 'use server';
 
 import { base, TABLE_NAME, TASKS_TABLE_NAME, HISTORY_TABLE_NAME, INVOICES_TABLE_NAME } from '@/lib/airtable';
-import { MaintenanceTask, ServiceHistory } from '@/lib/types';
+import { MaintenanceTask, ServiceHistory, Expense } from '@/lib/types';
 import { z } from 'zod';
 
 const MileageSchema = z.number().min(0).max(1000000);
@@ -131,26 +131,62 @@ export async function saveCarData(mileage: number, history: ServiceHistory): Pro
     }
 }
 
-export async function saveInvoice(analysis: string): Promise<boolean> {
-    console.log("Server Action: Saving invoice...");
+export async function saveInvoice(data: any): Promise<boolean> {
+    console.log("Server Action: Saving structured invoice...");
     if (!base) return false;
-
-    if (!analysis || analysis.trim() === "") {
-        console.error("saveInvoice: Empty analysis provided.");
-        return false;
-    }
 
     try {
         await base(INVOICES_TABLE_NAME).create([{
             fields: {
-                'Analyse': analysis,
-                'Date Analyse': new Date().toISOString().split('T')[0]
+                'Analyse': data.analysis,
+                'Date Analyse': new Date().toISOString().split('T')[0],
+                'Date': data.date || '',
+                'Montant': data.amount || 0,
+                'Libelle': data.label || 'Facture',
+                'Type': data.type || 'Autre',
+                'Conforme': data.isConform ? 'OUI' : 'NON'
             }
         }]);
         return true;
     } catch (error) {
         console.error(`saveInvoice Error (Table: ${INVOICES_TABLE_NAME}):`, error);
-        return false;
+        // Note: This might fail if the user hasn't added the new columns yet.
+        // I will try to fall back to just analysis if it fails.
+        try {
+            await base(INVOICES_TABLE_NAME).create([{
+                fields: {
+                    'Analyse': `[FAILSAFE] ${data.analysis}\n\nStructured Data: ${JSON.stringify(data)}`,
+                    'Date Analyse': new Date().toISOString().split('T')[0]
+                }
+            }]);
+            return true;
+        } catch (innerError) {
+            return false;
+        }
+    }
+}
+
+export async function fetchExpenses(): Promise<Expense[]> {
+    console.log("Server Action: Fetching expenses from Airtable...");
+    if (!base) return [];
+
+    try {
+        const records = await base(INVOICES_TABLE_NAME).select({
+            sort: [{ field: 'Date', direction: 'desc' }]
+        }).all();
+
+        return records.map(record => ({
+            id: record.id,
+            date: (record.get('Date') as string) || (record.get('Date Analyse') as string) || '',
+            amount: (record.get('Montant') as number) || 0,
+            label: (record.get('Libelle') as string) || 'Document',
+            type: (record.get('Type') as any) || 'Autre',
+            analysis: (record.get('Analyse') as string) || '',
+            isConform: record.get('Conforme') === 'OUI'
+        }));
+    } catch (error) {
+        console.error("fetchExpenses Error:", error);
+        return [];
     }
 }
 

@@ -3,15 +3,16 @@
 
 import React, { useState, useEffect } from 'react';
 
-import { MaintenanceTask, ServiceHistory } from '@/lib/types';
+import { MaintenanceTask, ServiceHistory, Expense } from '@/lib/types';
 import Header from './Header';
 import StatsCard from './StatsCard';
 import AiDiagnosis from './AiDiagnosis';
 import MaintenanceList from './MaintenanceList';
 import MileageUpdateModal from './MileageUpdateModal';
 import InvoiceScanModal from './InvoiceScanModal';
+import ExpensesTable from './ExpensesTable';
 import { getAiDiagnosis } from '@/ai/flows/ai-powered-diagnosis';
-import { fetchCarData, saveCarData, saveInvoice } from '@/actions/car-data';
+import { fetchCarData, saveCarData, saveInvoice, fetchExpenses } from '@/actions/car-data';
 import { analyzeInvoice as analyzeInvoiceFlow } from '@/ai/flows/invoice-analysis';
 import { speakMaintenanceAlerts } from '@/ai/flows/speak-maintenance-alerts';
 import { useToast } from "@/hooks/use-toast"
@@ -26,13 +27,16 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
   // Use simple state instead of local storage
   const [currentMileage, setCurrentMileage] = useState(47713);
   const [serviceHistory, setServiceHistory] = useState<ServiceHistory>({});
+  const [expenses, setExpenses] = useState<Expense[]>([]);
 
   // Track if we have synced with the server to prevent overwriting cloud data with defaults
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
+  // ... (modals state)
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
 
+  // ... (AI state)
   const [aiDiagnosis, setAiDiagnosis] = useState("");
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -64,12 +68,14 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
     const initCloudSync = async () => {
       const cloudData = await fetchCarData();
       if (cloudData) {
-        // If cloud data exists, it takes precedence (or we could merge, but simple overwrite is safer for now)
         if (cloudData.mileage > 0) setCurrentMileage(cloudData.mileage);
         if (Object.keys(cloudData.history).length > 0) setServiceHistory(cloudData.history);
-        console.log("Synced with Airtable");
       }
-      setIsDataLoaded(true); // Mark as loaded even if null (we accept default or cloud)
+
+      const cloudExpenses = await fetchExpenses();
+      setExpenses(cloudExpenses);
+
+      setIsDataLoaded(true);
     };
     initCloudSync();
   }, []);
@@ -126,7 +132,7 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
     const tasksStatus = sortedTasks.map(t => {
       const lastDone = serviceHistory[t.id] || 0;
       const statusData = calculateMaintenanceStatus(lastDone, t.interval, currentMileage);
-      return `- ${t.name}: ${statusData.remaining}km restants (${statusData.status}, Dernier fait à ${lastDone}km)`;
+      return `- ${t.name}: ${statusData.remaining}km restants (${statusData.status}, Prévu vers ${statusData.estimatedDate})`;
     }).join('\n');
 
     try {
@@ -186,10 +192,16 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
 
     try {
       const result = await analyzeInvoiceFlow({ invoiceDataUri: selectedFile });
-      setInvoiceFeedback(result.analysis);
 
-      // Save analysis to Airtable
-      await saveInvoice(result.analysis);
+      // Update UI feedback
+      setInvoiceFeedback(`[${result.type}] ${result.label}\n\n${result.analysis}`);
+
+      // Save structured analysis to Airtable
+      await saveInvoice(result);
+
+      // Refresh expenses list
+      const updatedExpenses = await fetchExpenses();
+      setExpenses(updatedExpenses);
 
     } catch (error) {
       setInvoiceFeedback("Erreur lors de l'analyse. Veuillez réessayer.");
@@ -299,6 +311,10 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks }: Dashb
         serviceHistory={serviceHistory}
         onMarkDone={markDone}
       />
+
+      <div className="p-4 sm:p-6 pb-20">
+        <ExpensesTable expenses={expenses} />
+      </div>
 
       <MileageUpdateModal
         open={showUpdateModal}
