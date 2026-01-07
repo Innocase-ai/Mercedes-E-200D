@@ -164,7 +164,8 @@ export async function saveCarData(mileage: number, history: ServiceHistory, deta
         }
 
         return true;
-    } catch (error) {
+    } catch (error: any) {
+        console.error("saveCarData Error Details:", error?.response?.data || error.message || error);
         if (error instanceof z.ZodError) {
             console.error("saveCarData Validation Error:", error.issues);
         } else {
