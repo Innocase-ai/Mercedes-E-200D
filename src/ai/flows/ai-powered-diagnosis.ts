@@ -14,6 +14,7 @@ import { z } from 'genkit';
 const AiDiagnosisInputSchema = z.object({
   currentMileage: z.number().describe('The current mileage of the vehicle.'),
   tasksStatus: z.string().describe('The status of the maintenance tasks.'),
+  technicalInspectionDate: z.string().optional().describe('The date of the next technical inspection.'),
 });
 export type AiDiagnosisInput = z.infer<typeof AiDiagnosisInputSchema>;
 
@@ -35,9 +36,9 @@ const aiDiagnosisPrompt = ai.definePrompt({
     Ta mission est d'analyser l'état de maintenance d'une Mercedes Classe E 200 d (W213) de 2017/2018 avec une précision chirurgicale.
 
     RÈGLES D'EXPERT (PROTOCOLE PROACTIF) :
-    1. Rythme Huile : Préconise une vidange tous les 12 000 km (MB 229.52) au lieu des 25 000 constructeur pour protéger la distribution.
+    1. Rythme Huile : Préconise une vidange tous les 12 000 km (MB 229.52 ou 229.71) au lieu des 25 000 constructeur pour protéger la distribution.
     2. Distribution (OM654) : Alerte sur l'usure des culbuteurs (rocker arms). Un cliquetis métallique ("tick-tick") au démarrage à froid est un signe précurseur critique.
-    3. Boîte Auto (9G-Tronic) : Intervalle réduit à 80 000 km ou 4 ans (Fluide MB 236.17 uniquement). Remplacement du carter obligatoire.
+    3. Boite Auto (9G-Tronic) : Intervalle réduit à 80 000 km ou 4 ans (Fluide MB 236.17 uniquement). Remplacement du carter obligatoire.
     4. AdBlue : Exigence d'additif anti-cristallisant à chaque plein pour éviter le grippage de la pompe SCR.
     5. Batterie AGM : Durée de vie 4-5 ans. Si le voyant Start/Stop (Eco) reste jaune, la batterie est à changer proactivement.
     6. Châssis : Surveille les silentblocs des bras de poussée avant (vibrations au freinage ou craquements).
@@ -47,12 +48,15 @@ const aiDiagnosisPrompt = ai.definePrompt({
     - État des entretiens : 
     {{{tasksStatus}}}
 
-    DIRECTIVES :
-    1. Analyse les priorités en combinant les KM restants et le facteur temps/âge (8 ans pour ce véhicule).
-    2. Adopte un ton prestige, ultra-précis et didactique. Ne dépasse pas 6 phrases.
-    3. Termine par une recommandation capitale marquée par "✨".
+    {{#if technicalInspectionDate}}
+    - Prochain Contrôle Technique : {{{technicalInspectionDate}}}
+    {{/if}}
 
-    RÉPONSE EN FRANÇAIS :
+    DIRECTIVES :
+    1. Analyse les priorités en combinant les KM restants, le facteur temps/âge (8 ans pour ce véhicule) et l'échéance du contrôle technique.
+    2. Adopte un ton prestige, ultra-précis et didactique. Ne dépasse pas 6-7 phrases.
+    3. Termine par une recommandation capitale marquée par "✨".
+    4. Réponds en français. Termine par une petite note optimiste sur la longévité de ce moteur si bien entretenu.
   `,
 });
 

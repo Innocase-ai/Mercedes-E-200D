@@ -3,15 +3,17 @@
 
 import React, { useState, useEffect } from 'react';
 
-import { MaintenanceTask, ServiceHistory, Expense } from '@/lib/types';
+import ExpensesTable from './ExpensesTable';
+import MaintenanceAlert from './MaintenanceAlert';
+import TechnicalSpecs from './TechnicalSpecs';
 import Header from './Header';
 import StatsCard from './StatsCard';
 import AiDiagnosis from './AiDiagnosis';
 import MaintenanceList from './MaintenanceList';
 import MileageUpdateModal from './MileageUpdateModal';
 import InvoiceScanModal from './InvoiceScanModal';
-import ExpensesTable from './ExpensesTable';
-import MaintenanceAlert from './MaintenanceAlert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CarDetails, MaintenanceTask, ServiceHistory, Expense } from '@/lib/types';
 import { getAiDiagnosis } from '@/ai/flows/ai-powered-diagnosis';
 import { fetchMaintenanceTasks, fetchCarData, saveCarData, saveInvoice, fetchExpenses } from '@/actions/car-data';
 import { analyzeInvoice as analyzeInvoiceFlow } from '@/ai/flows/invoice-analysis';
@@ -33,6 +35,11 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
 
   // Track if we have synced with the server to prevent overwriting cloud data with defaults
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [carDetails, setCarDetails] = useState<CarDetails>({
+    mma: 2320,
+    puissanceFiscale: 10,
+    nextTechnicalInspection: '2026-12-26'
+  });
 
   // ... (modals state)
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -80,6 +87,7 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
       if (cloudData) {
         if (cloudData.mileage > 0) setCurrentMileage(cloudData.mileage);
         if (Object.keys(cloudData.history).length > 0) setServiceHistory(cloudData.history);
+        if (cloudData.details) setCarDetails(cloudData.details);
       }
 
       // 3. Fetch Expenses
@@ -97,7 +105,7 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
 
     const timer = setTimeout(async () => {
       console.log("Auto-saving to Airtable...", { currentMileage });
-      const success = await saveCarData(currentMileage, serviceHistory);
+      const success = await saveCarData(currentMileage, serviceHistory, carDetails);
       if (success) {
         console.log("Auto-save success");
         toast({
@@ -116,9 +124,10 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [currentMileage, serviceHistory, isClient, isDataLoaded, toast]);
+  }, [currentMileage, serviceHistory, carDetails, isClient, isDataLoaded, toast]);
 
 
+  // ... (rest of code)
   // ... (rest of code)
 
   // Performance Optimization: Memoize the sorted tasks list
@@ -151,7 +160,7 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
     }).join('\n');
 
     try {
-      const result = await getAiDiagnosis({ currentMileage, tasksStatus });
+      const result = await getAiDiagnosis({ currentMileage, tasksStatus, technicalInspectionDate: carDetails.nextTechnicalInspection });
       setAiDiagnosis(result.diagnosis);
     } catch (error) {
       setAiDiagnosis("Impossible de contacter l'assistant expert pour le moment.");
@@ -288,6 +297,14 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
     }
   };
 
+  const updateDetails = (details: CarDetails) => {
+    setCarDetails(details);
+    toast({
+      title: "Données mises à jour",
+      description: "La fiche technique a été enregistrée.",
+    });
+  };
+
   const markDone = (id: string) => {
     setServiceHistory({ ...serviceHistory, [id]: currentMileage });
   };
@@ -318,24 +335,53 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
         tasks={maintenanceTasks}
         currentMileage={currentMileage}
         serviceHistory={serviceHistory}
+        technicalInspectionDate={carDetails.nextTechnicalInspection}
       />
 
-      <AiDiagnosis
-        aiDiagnosis={aiDiagnosis}
-        isDiagnosing={isDiagnosing}
-        onDiagnoseClick={handleAiDiagnosis}
-      />
+      <Tabs defaultValue="maintenance" className="w-full">
+        <div className="px-4 sm:px-6 mb-6">
+          <TabsList className="bg-slate-200/50 p-1 rounded-2xl w-full sm:w-auto grid grid-cols-2 shadow-inner">
+            <TabsTrigger
+              value="maintenance"
+              className="rounded-xl px-8 py-3 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all"
+            >
+              Entretien
+            </TabsTrigger>
+            <TabsTrigger
+              value="specs"
+              className="rounded-xl px-8 py-3 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all"
+            >
+              Fiche Technique
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-      <MaintenanceList
-        tasks={sortedTasks}
-        currentMileage={currentMileage}
-        serviceHistory={serviceHistory}
-        onMarkDone={markDone}
-      />
+        <TabsContent value="maintenance" className="mt-0 space-y-8 outline-none">
+          <AiDiagnosis
+            aiDiagnosis={aiDiagnosis}
+            isDiagnosing={isDiagnosing}
+            onDiagnoseClick={handleAiDiagnosis}
+          />
 
-      <div className="p-4 sm:p-6 pb-20">
-        <ExpensesTable expenses={expenses} />
-      </div>
+          <MaintenanceList
+            tasks={sortedTasks}
+            currentMileage={currentMileage}
+            serviceHistory={serviceHistory}
+            onMarkDone={markDone}
+          />
+
+          <div className="p-4 sm:p-6 pb-20">
+            <ExpensesTable expenses={expenses} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="specs" className="mt-0 outline-none">
+          <TechnicalSpecs
+            details={carDetails}
+            onUpdateDetails={updateDetails}
+          />
+        </TabsContent>
+      </Tabs>
 
       <MileageUpdateModal
         open={showUpdateModal}

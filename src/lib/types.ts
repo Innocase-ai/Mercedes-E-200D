@@ -22,6 +22,12 @@ export interface Expense {
   isConform: boolean;
 }
 
+export interface CarDetails {
+  mma: number;
+  puissanceFiscale: number;
+  nextTechnicalInspection: string;
+}
+
 export interface MaintenanceRecord {
   id: string;
   taskName: string;

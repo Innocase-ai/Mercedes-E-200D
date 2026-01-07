@@ -1,7 +1,7 @@
 'use server';
 
 import { TABLE_NAME, HISTORY_TABLE_NAME, TASKS_TABLE_NAME, INVOICES_TABLE_NAME, base } from '@/lib/airtable';
-import { MaintenanceTask, ServiceHistory, Expense, MaintenanceRecord } from '@/lib/types';
+import { MaintenanceTask, ServiceHistory, Expense, MaintenanceRecord, CarDetails } from '@/lib/types';
 import { z } from 'zod';
 
 const MileageSchema = z.number().min(0).max(1000000);
@@ -11,6 +11,7 @@ const HistorySchema = z.record(z.string(), z.number().min(0));
 export interface CarData {
     mileage: number;
     history: ServiceHistory;
+    details: CarDetails;
 }
 
 // SECURITY NOTE: In a production environment, all server actions MUST be protected
@@ -67,9 +68,16 @@ export async function fetchCarData(): Promise<CarData | null> {
     }
 
     try {
-        // 1. Fetch Mileage from Vehicules
+        // 1. Fetch Mileage and Details from Vehicules
         const vehicleRecords = await base(TABLE_NAME).select({ maxRecords: 1 }).firstPage();
-        const mileage = vehicleRecords.length > 0 ? (vehicleRecords[0].get('Kilometrage Actuel') as number) : 0;
+        const record = vehicleRecords[0];
+
+        const mileage = record ? (record.get('Kilometrage Actuel') as number) : 0;
+        const details: CarDetails = {
+            mma: record ? (record.get('MMA') as number) || 2320 : 2320,
+            puissanceFiscale: record ? (record.get('Puissance Fiscale') as number) || 10 : 10,
+            nextTechnicalInspection: record ? (record.get('Prochain CT') as string) || '2026-12-26' : '2026-12-26',
+        };
 
         // 2. Fetch History from HistoriqueEntretiens
         const historyRecords = await base(HISTORY_TABLE_NAME).select().all();
@@ -86,14 +94,14 @@ export async function fetchCarData(): Promise<CarData | null> {
             }
         });
 
-        return { mileage, history };
+        return { mileage, history, details };
     } catch (error) {
         console.error("fetchCarData Error:", error);
         return null;
     }
 }
 
-export async function saveCarData(mileage: number, history: ServiceHistory): Promise<boolean> {
+export async function saveCarData(mileage: number, history: ServiceHistory, details?: CarDetails): Promise<boolean> {
     console.log("Server Action: Saving car data...");
 
     if (!base) {
@@ -106,14 +114,33 @@ export async function saveCarData(mileage: number, history: ServiceHistory): Pro
         MileageSchema.parse(mileage);
         HistorySchema.parse(history);
 
-        // 1. Update Mileage in Vehicules
+        // 1. Update Mileage and Details in Vehicules
         const vehicleRecords = await base(TABLE_NAME).select({ maxRecords: 1 }).firstPage();
+
+        const updateFields: any = { 'Kilometrage Actuel': mileage };
+        if (details) {
+            updateFields['MMA'] = details.mma;
+            updateFields['Puissance Fiscale'] = details.puissanceFiscale;
+            updateFields['Prochain CT'] = details.nextTechnicalInspection;
+        }
+
         if (vehicleRecords.length === 0) {
-            await base(TABLE_NAME).create([{ fields: { 'Kilometrage Actuel': mileage } }]);
+            await base(TABLE_NAME).create([{ fields: updateFields }]);
         } else {
-            const currentKm = vehicleRecords[0].get('Kilometrage Actuel') as number;
-            if (currentKm !== mileage) {
-                await base(TABLE_NAME).update(vehicleRecords[0].id, { 'Kilometrage Actuel': mileage });
+            // Check if anything actually changed to avoid unnecessary API calls
+            const currentRecord = vehicleRecords[0];
+            const currentKm = currentRecord.get('Kilometrage Actuel') as number;
+            const currentMMA = currentRecord.get('MMA') as number;
+            const currentPF = currentRecord.get('Puissance Fiscale') as number;
+            const currentCT = currentRecord.get('Prochain CT') as string;
+
+            const needsUpdate = currentKm !== mileage ||
+                (details && (currentMMA !== details.mma ||
+                    currentPF !== details.puissanceFiscale ||
+                    currentCT !== details.nextTechnicalInspection));
+
+            if (needsUpdate) {
+                await base(TABLE_NAME).update(currentRecord.id, updateFields);
             }
         }
 

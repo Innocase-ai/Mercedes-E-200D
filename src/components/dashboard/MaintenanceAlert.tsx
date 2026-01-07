@@ -10,16 +10,43 @@ interface MaintenanceAlertProps {
     tasks: MaintenanceTask[];
     currentMileage: number;
     serviceHistory: ServiceHistory;
+    technicalInspectionDate?: string;
 }
 
-export default function MaintenanceAlert({ tasks, currentMileage, serviceHistory }: MaintenanceAlertProps) {
+export default function MaintenanceAlert({ tasks, currentMileage, serviceHistory, technicalInspectionDate }: MaintenanceAlertProps) {
     const alerts = tasks.map(task => {
         const lastDone = serviceHistory[task.id] || 0;
         return {
             task,
+            isCT: false,
             ...calculateMaintenanceStatus(lastDone, task.interval, currentMileage)
         };
     }).filter(a => a.status !== 'OK');
+
+    // Add Technical Inspection alert if within 30 days
+    if (technicalInspectionDate) {
+        const ctDate = new Date(technicalInspectionDate);
+        const today = new Date();
+        const diffTime = ctDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 30) {
+            alerts.unshift({
+                task: {
+                    id: 'ct',
+                    name: 'Contrôle Technique',
+                    interval: 0,
+                    priceIndep: 0,
+                    priceMB: 0,
+                    description: 'Visite périodique obligatoire au centre de contrôle.'
+                },
+                status: diffDays <= 0 ? 'RETARD' : 'PROCHE',
+                remaining: diffDays,
+                estimatedDate: technicalInspectionDate,
+                isCT: true
+            } as any);
+        }
+    }
 
     if (alerts.length === 0) return null;
 
@@ -56,7 +83,12 @@ export default function MaintenanceAlert({ tasks, currentMileage, serviceHistory
                                     </span>
                                 </div>
                                 <p className="text-slate-600 text-[12px] sm:text-sm font-bold leading-tight">
-                                    {alert.task.name} : <span className="font-black">{alert.remaining <= 0 ? "Échéance dépassée" : `Encore ${alert.remaining.toLocaleString()} km`}</span>
+                                    {alert.task.name} : <span className="font-black">
+                                        {alert.isCT
+                                            ? (alert.remaining <= 0 ? "Échéance dépassée" : `Dans ${alert.remaining} jours`)
+                                            : (alert.remaining <= 0 ? "Échéance dépassée" : `Encore ${alert.remaining.toLocaleString()} km`)
+                                        }
+                                    </span>
                                 </p>
                                 <div className="mt-2 flex items-center gap-1.5 text-[11px] sm:text-[12px] text-slate-400 font-bold italic">
                                     <Info className="w-3.5 h-3.5" />
