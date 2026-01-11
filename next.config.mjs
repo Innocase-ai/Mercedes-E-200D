@@ -10,6 +10,10 @@ const nextConfig = {
                 protocol: 'https',
                 hostname: 'assets.gqmagazine.fr',
             },
+            {
+                protocol: 'https',
+                hostname: 'images.unsplash.com',
+            },
         ],
     },
     output: 'standalone',
