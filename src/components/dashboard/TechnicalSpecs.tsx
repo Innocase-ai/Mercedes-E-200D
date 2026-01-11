@@ -48,8 +48,8 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                         <div className="space-y-2">
                             <Input
                                 type="number"
-                                value={localDetails.mma}
-                                onChange={(e) => handleChange('mma', parseInt(e.target.value) || 0)}
+                                value={localDetails.mma === 0 ? '' : localDetails.mma}
+                                onChange={(e) => handleChange('mma', e.target.value === '' ? 0 : parseInt(e.target.value))}
                                 className="text-2xl font-black h-16 rounded-2xl border-2 border-slate-50 focus-visible:ring-primary/20 focus-visible:border-primary transition-all bg-slate-50/30"
                             />
                             <p className="text-[11px] text-slate-400 font-medium px-2 italic">Masse maximale autorisée du véhicule.</p>
@@ -69,8 +69,8 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                         <div className="space-y-2">
                             <Input
                                 type="number"
-                                value={localDetails.puissanceFiscale}
-                                onChange={(e) => handleChange('puissanceFiscale', parseInt(e.target.value) || 0)}
+                                value={localDetails.puissanceFiscale === 0 ? '' : localDetails.puissanceFiscale}
+                                onChange={(e) => handleChange('puissanceFiscale', e.target.value === '' ? 0 : parseInt(e.target.value))}
                                 className="text-2xl font-black h-16 rounded-2xl border-2 border-slate-50 focus-visible:ring-primary/20 focus-visible:border-primary transition-all bg-slate-50/30"
                             />
                             <p className="text-[11px] text-slate-400 font-medium px-2 italic">Chevaux fiscaux (CV) pour la carte grise.</p>
@@ -142,8 +142,8 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                                     <Input
                                         type="number"
                                         placeholder="0"
-                                        value={localDetails.tirePrice}
-                                        onChange={(e) => handleChange('tirePrice', parseFloat(e.target.value) || 0)}
+                                        value={localDetails.tirePrice === 0 ? '' : localDetails.tirePrice}
+                                        onChange={(e) => handleChange('tirePrice', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         className="font-bold h-12 rounded-xl border-2 border-slate-50 focus-visible:ring-primary/20 transition-all bg-slate-50/30 pl-10"
                                     />
                                     <Euro className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -190,8 +190,8 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                                     <Input
                                         type="number"
                                         placeholder="0"
-                                        value={localDetails.oilPrice}
-                                        onChange={(e) => handleChange('oilPrice', parseFloat(e.target.value) || 0)}
+                                        value={localDetails.oilPrice === 0 ? '' : localDetails.oilPrice}
+                                        onChange={(e) => handleChange('oilPrice', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         className="font-bold h-12 rounded-xl border-2 border-slate-50 focus-visible:ring-primary/20 transition-all bg-slate-50/30 pl-10"
                                     />
                                     <Euro className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
