@@ -112,8 +112,8 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
 
     const timer = setTimeout(async () => {
       console.log("Auto-saving to Airtable...", { currentMileage });
-      const success = await saveCarData(currentMileage, serviceHistory, carDetails);
-      if (success) {
+      const result = await saveCarData(currentMileage, serviceHistory, carDetails);
+      if (result.success) {
         console.log("Auto-save success");
         toast({
           title: "Sauvegarde réussie",
@@ -121,11 +121,11 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
           duration: 2000,
         });
       } else {
-        console.error("Auto-save failed");
+        console.error("Auto-save failed", result.error);
         toast({
           variant: "destructive",
           title: "Erreur de sauvegarde",
-          description: "Impossible de synchroniser avec Airtable.",
+          description: result.error || "Impossible de synchroniser avec Airtable.",
         });
       }
     }, 1500);

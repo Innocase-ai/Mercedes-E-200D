@@ -108,12 +108,12 @@ export async function fetchCarData(): Promise<CarData | null> {
     }
 }
 
-export async function saveCarData(mileage: number, history: ServiceHistory, details?: CarDetails): Promise<boolean> {
+export async function saveCarData(mileage: number, history: ServiceHistory, details?: CarDetails): Promise<{ success: boolean; error?: string }> {
     console.log("Server Action: Saving car data...");
 
     if (!base) {
         console.error("saveCarData: Airtable base not initialized.");
-        return false;
+        return { success: false, error: "Airtable base not initialized" };
     }
 
     try {
@@ -186,15 +186,21 @@ export async function saveCarData(mileage: number, history: ServiceHistory, deta
             }
         }
 
-        return true;
+        return { success: true };
     } catch (error: any) {
-        console.error("saveCarData Error Details:", error?.response?.data || error.message || error);
+        const errorDetail = error?.response?.data || error.message || error;
+        console.error("saveCarData Error Details:", errorDetail);
+
+        let userErrorMessage = "Détails de l'erreur Airtable (vérifiez vos colonnes) : " +
+            (error?.message || "Erreur inconnue");
+
         if (error instanceof z.ZodError) {
             console.error("saveCarData Validation Error:", error.issues);
+            userErrorMessage = "Erreur de validation des données.";
         } else {
             console.error("saveCarData Critical Error:", error);
         }
-        return false;
+        return { success: false, error: userErrorMessage };
     }
 }
 

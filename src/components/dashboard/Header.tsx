@@ -19,6 +19,7 @@ export default function Header({ carImageUrl, onScanClick }: HeaderProps) {
             fill
             className="object-cover"
             priority
+            unoptimized
             data-ai-hint="mercedes car"
           />
         )}
