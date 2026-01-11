@@ -15,18 +15,54 @@ interface TechnicalSpecsProps {
 }
 
 export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSpecsProps) {
-    const [localDetails, setLocalDetails] = React.useState<CarDetails>(details);
+    // We use a string-based local state to give the user full control over what they type
+    // (especially for leading zeros, decimal points, and clearing fields).
+    const [formState, setFormState] = React.useState({
+        mma: details.mma?.toString() || '',
+        puissanceFiscale: details.puissanceFiscale?.toString() || '',
+        nextTechnicalInspection: details.nextTechnicalInspection || '',
+        tireSize: details.tireSize || '',
+        tireBrand: details.tireBrand || '',
+        tirePrice: details.tirePrice?.toString() || '',
+        oilType: details.oilType || '',
+        oilBrand: details.oilBrand || '',
+        oilPrice: details.oilPrice?.toString() || '',
+        notes: details.notes || ''
+    });
 
     React.useEffect(() => {
-        setLocalDetails(details);
+        setFormState({
+            mma: details.mma?.toString() || '',
+            puissanceFiscale: details.puissanceFiscale?.toString() || '',
+            nextTechnicalInspection: details.nextTechnicalInspection || '',
+            tireSize: details.tireSize || '',
+            tireBrand: details.tireBrand || '',
+            tirePrice: details.tirePrice?.toString() || '',
+            oilType: details.oilType || '',
+            oilBrand: details.oilBrand || '',
+            oilPrice: details.oilPrice?.toString() || '',
+            notes: details.notes || ''
+        });
     }, [details]);
 
-    const handleChange = (field: keyof CarDetails, value: string | number) => {
-        setLocalDetails(prev => ({ ...prev, [field]: value }));
+    const handleInputChange = (field: string, value: string) => {
+        setFormState(prev => ({ ...prev, [field]: value }));
     };
 
     const handleSave = () => {
-        onUpdateDetails(localDetails);
+        const updatedDetails: CarDetails = {
+            mma: parseInt(formState.mma) || 0,
+            puissanceFiscale: parseInt(formState.puissanceFiscale) || 0,
+            nextTechnicalInspection: formState.nextTechnicalInspection,
+            tireSize: formState.tireSize,
+            tireBrand: formState.tireBrand,
+            tirePrice: parseFloat(formState.tirePrice) || 0,
+            oilType: formState.oilType,
+            oilBrand: formState.oilBrand,
+            oilPrice: parseFloat(formState.oilPrice) || 0,
+            notes: formState.notes
+        };
+        onUpdateDetails(updatedDetails);
     };
 
     return (
@@ -47,9 +83,10 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                         </div>
                         <div className="space-y-2">
                             <Input
-                                type="number"
-                                value={localDetails.mma === 0 ? '' : localDetails.mma}
-                                onChange={(e) => handleChange('mma', e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                type="text"
+                                inputMode="numeric"
+                                value={formState.mma}
+                                onChange={(e) => handleInputChange('mma', e.target.value)}
                                 className="text-2xl font-black h-16 rounded-2xl border-2 border-slate-50 focus-visible:ring-primary/20 focus-visible:border-primary transition-all bg-slate-50/30"
                             />
                             <p className="text-[11px] text-slate-400 font-medium px-2 italic">Masse maximale autorisée du véhicule.</p>
@@ -68,9 +105,10 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                         </div>
                         <div className="space-y-2">
                             <Input
-                                type="number"
-                                value={localDetails.puissanceFiscale === 0 ? '' : localDetails.puissanceFiscale}
-                                onChange={(e) => handleChange('puissanceFiscale', e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                type="text"
+                                inputMode="numeric"
+                                value={formState.puissanceFiscale}
+                                onChange={(e) => handleInputChange('puissanceFiscale', e.target.value)}
                                 className="text-2xl font-black h-16 rounded-2xl border-2 border-slate-50 focus-visible:ring-primary/20 focus-visible:border-primary transition-all bg-slate-50/30"
                             />
                             <p className="text-[11px] text-slate-400 font-medium px-2 italic">Chevaux fiscaux (CV) pour la carte grise.</p>
@@ -90,8 +128,8 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                         <div className="space-y-2">
                             <Input
                                 type="date"
-                                value={localDetails.nextTechnicalInspection}
-                                onChange={(e) => handleChange('nextTechnicalInspection', e.target.value)}
+                                value={formState.nextTechnicalInspection}
+                                onChange={(e) => handleInputChange('nextTechnicalInspection', e.target.value)}
                                 className="text-2xl font-black h-16 rounded-2xl border-2 border-slate-50 focus-visible:ring-primary/20 focus-visible:border-primary transition-all bg-slate-50/30"
                             />
                             <p className="text-[11px] text-slate-400 font-medium px-2 italic">Date limite pour le passage au centre de contrôle.</p>
@@ -121,8 +159,8 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Taille</Label>
                                     <Input
                                         placeholder="ex: 245/45 R18"
-                                        value={localDetails.tireSize}
-                                        onChange={(e) => handleChange('tireSize', e.target.value)}
+                                        value={formState.tireSize}
+                                        onChange={(e) => handleInputChange('tireSize', e.target.value)}
                                         className="font-bold h-12 rounded-xl border-2 border-slate-50 focus-visible:ring-primary/20 transition-all bg-slate-50/30"
                                     />
                                 </div>
@@ -130,8 +168,8 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Marque</Label>
                                     <Input
                                         placeholder="ex: Michelin"
-                                        value={localDetails.tireBrand}
-                                        onChange={(e) => handleChange('tireBrand', e.target.value)}
+                                        value={formState.tireBrand}
+                                        onChange={(e) => handleInputChange('tireBrand', e.target.value)}
                                         className="font-bold h-12 rounded-xl border-2 border-slate-50 focus-visible:ring-primary/20 transition-all bg-slate-50/30"
                                     />
                                 </div>
@@ -140,10 +178,11 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Prix Estimé (€)</Label>
                                 <div className="relative">
                                     <Input
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         placeholder="0"
-                                        value={localDetails.tirePrice === 0 ? '' : localDetails.tirePrice}
-                                        onChange={(e) => handleChange('tirePrice', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                        value={formState.tirePrice}
+                                        onChange={(e) => handleInputChange('tirePrice', e.target.value)}
                                         className="font-bold h-12 rounded-xl border-2 border-slate-50 focus-visible:ring-primary/20 transition-all bg-slate-50/30 pl-10"
                                     />
                                     <Euro className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -169,8 +208,8 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Type / Norme</Label>
                                     <Input
                                         placeholder="ex: 5W30"
-                                        value={localDetails.oilType}
-                                        onChange={(e) => handleChange('oilType', e.target.value)}
+                                        value={formState.oilType}
+                                        onChange={(e) => handleInputChange('oilType', e.target.value)}
                                         className="font-bold h-12 rounded-xl border-2 border-slate-50 focus-visible:ring-primary/20 transition-all bg-slate-50/30"
                                     />
                                 </div>
@@ -178,8 +217,8 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Marque</Label>
                                     <Input
                                         placeholder="ex: Castrol"
-                                        value={localDetails.oilBrand}
-                                        onChange={(e) => handleChange('oilBrand', e.target.value)}
+                                        value={formState.oilBrand}
+                                        onChange={(e) => handleInputChange('oilBrand', e.target.value)}
                                         className="font-bold h-12 rounded-xl border-2 border-slate-50 focus-visible:ring-primary/20 transition-all bg-slate-50/30"
                                     />
                                 </div>
@@ -188,10 +227,11 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Prix au Litre (€)</Label>
                                 <div className="relative">
                                     <Input
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         placeholder="0"
-                                        value={localDetails.oilPrice === 0 ? '' : localDetails.oilPrice}
-                                        onChange={(e) => handleChange('oilPrice', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                        value={formState.oilPrice}
+                                        onChange={(e) => handleInputChange('oilPrice', e.target.value)}
                                         className="font-bold h-12 rounded-xl border-2 border-slate-50 focus-visible:ring-primary/20 transition-all bg-slate-50/30 pl-10"
                                     />
                                     <Euro className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -214,8 +254,8 @@ export default function TechnicalSpecs({ details, onUpdateDetails }: TechnicalSp
                         <div className="space-y-2">
                             <Textarea
                                 placeholder="Autres informations importantes..."
-                                value={localDetails.notes}
-                                onChange={(e) => handleChange('notes', e.target.value)}
+                                value={formState.notes}
+                                onChange={(e) => handleInputChange('notes', e.target.value)}
                                 className="font-medium min-h-[100px] rounded-xl border-2 border-slate-50 focus-visible:ring-primary/20 transition-all bg-slate-50/30 resize-none"
                             />
                         </div>
