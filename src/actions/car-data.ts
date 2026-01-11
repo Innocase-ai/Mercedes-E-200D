@@ -77,6 +77,13 @@ export async function fetchCarData(): Promise<CarData | null> {
             mma: record ? (record.get('MMA') as number) || 2320 : 2320,
             puissanceFiscale: record ? (record.get('Puissance Fiscale') as number) || 10 : 10,
             nextTechnicalInspection: record ? (record.get('Prochain CT') as string) || '2026-12-26' : '2026-12-26',
+            tireSize: record ? (record.get('Taille Pneus') as string) || '' : '',
+            tireBrand: record ? (record.get('Marque Pneus') as string) || '' : '',
+            tirePrice: record ? (record.get('Prix Pneus') as number) || 0 : 0,
+            oilType: record ? (record.get('Type Huile') as string) || '' : '',
+            oilBrand: record ? (record.get('Marque Huile') as string) || '' : '',
+            oilPrice: record ? (record.get('Prix Huile') as number) || 0 : 0,
+            notes: record ? (record.get('Notes') as string) || '' : '',
         };
 
         // 2. Fetch History from HistoriqueEntretiens
@@ -122,6 +129,13 @@ export async function saveCarData(mileage: number, history: ServiceHistory, deta
             updateFields['MMA'] = details.mma;
             updateFields['Puissance Fiscale'] = details.puissanceFiscale;
             updateFields['Prochain CT'] = details.nextTechnicalInspection;
+            updateFields['Taille Pneus'] = details.tireSize;
+            updateFields['Marque Pneus'] = details.tireBrand;
+            updateFields['Prix Pneus'] = details.tirePrice;
+            updateFields['Type Huile'] = details.oilType;
+            updateFields['Marque Huile'] = details.oilBrand;
+            updateFields['Prix Huile'] = details.oilPrice;
+            updateFields['Notes'] = details.notes;
         }
 
         if (vehicleRecords.length === 0) {
@@ -135,9 +149,18 @@ export async function saveCarData(mileage: number, history: ServiceHistory, deta
             const currentCT = currentRecord.get('Prochain CT') as string;
 
             const needsUpdate = currentKm !== mileage ||
-                (details && (currentMMA !== details.mma ||
-                    currentPF !== details.puissanceFiscale ||
-                    currentCT !== details.nextTechnicalInspection));
+                (details && (
+                    currentRecord.get('MMA') !== details.mma ||
+                    currentRecord.get('Puissance Fiscale') !== details.puissanceFiscale ||
+                    currentRecord.get('Prochain CT') !== details.nextTechnicalInspection ||
+                    currentRecord.get('Taille Pneus') !== details.tireSize ||
+                    currentRecord.get('Marque Pneus') !== details.tireBrand ||
+                    currentRecord.get('Prix Pneus') !== details.tirePrice ||
+                    currentRecord.get('Type Huile') !== details.oilType ||
+                    currentRecord.get('Marque Huile') !== details.oilBrand ||
+                    currentRecord.get('Prix Huile') !== details.oilPrice ||
+                    currentRecord.get('Notes') !== details.notes
+                ));
 
             if (needsUpdate) {
                 await base(TABLE_NAME).update(currentRecord.id, updateFields);

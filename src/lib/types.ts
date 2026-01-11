@@ -26,6 +26,13 @@ export interface CarDetails {
   mma: number;
   puissanceFiscale: number;
   nextTechnicalInspection: string;
+  tireSize?: string;
+  tireBrand?: string;
+  tirePrice?: number;
+  oilType?: string;
+  oilBrand?: string;
+  oilPrice?: number;
+  notes?: string;
 }
 
 export interface MaintenanceRecord {

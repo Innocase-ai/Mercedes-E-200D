@@ -38,7 +38,14 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
   const [carDetails, setCarDetails] = useState<CarDetails>({
     mma: 2320,
     puissanceFiscale: 10,
-    nextTechnicalInspection: '2026-12-26'
+    nextTechnicalInspection: '2026-12-26',
+    tireSize: '',
+    tireBrand: '',
+    tirePrice: 0,
+    oilType: '',
+    oilBrand: '',
+    oilPrice: 0,
+    notes: ''
   });
 
   // ... (modals state)
