@@ -163,6 +163,7 @@ export async function saveCarData(mileage: number, history: ServiceHistory, deta
                 ));
 
             if (needsUpdate) {
+                console.log("[Airtable Diagnostic] Available fields in record:", Object.keys((currentRecord as any)._rawJson?.fields || {}));
                 await base(TABLE_NAME).update(currentRecord.id, updateFields);
             }
         }
