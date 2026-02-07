@@ -30,7 +30,7 @@ const speakMaintenanceAlertsFlow = ai.defineFlow(
     inputSchema: SpeakMaintenanceAlertsInputSchema,
     outputSchema: SpeakMaintenanceAlertsOutputSchema,
   },
-  async (query) => {
+  async (query: SpeakMaintenanceAlertsInput) => {
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-tts',
       config: {
