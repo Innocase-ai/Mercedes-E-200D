@@ -9,7 +9,7 @@
         "lint": "next lint"
     },
     "dependencies": {
-        "@genkit-ai/google-genai": "latest",
+        "@genkit-ai/google-genai": "^1.28.0",
         "@hookform/resolvers": "latest",
         "@radix-ui/react-accordion": "latest",
         "@radix-ui/react-alert-dialog": "latest",
@@ -38,7 +38,7 @@
         "date-fns": "latest",
         "dotenv": "latest",
         "embla-carousel-react": "latest",
-        "genkit": "latest",
+        "genkit": "^1.28.0",
         "lucide-react": "latest",
         "next": "latest",
         "react": "latest",
