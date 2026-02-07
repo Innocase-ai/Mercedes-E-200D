@@ -31,7 +31,21 @@ const AnalyzeInvoiceOutputSchema = z.object({
 export type AnalyzeInvoiceOutput = z.infer<typeof AnalyzeInvoiceOutputSchema>;
 
 export async function analyzeInvoice(input: AnalyzeInvoiceInput): Promise<AnalyzeInvoiceOutput> {
-  return analyzeInvoiceFlow(input);
+  const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("CONFIGURATION_ERROR: Clé API Google manquante sur le serveur. Veuillez ajouter GOOGLE_GENAI_API_KEY.");
+  }
+
+  if (!ai) {
+    throw new Error("INIT_ERROR: Le service AI n'a pas pu s'initialiser. Vérifiez les logs serveur.");
+  }
+
+  try {
+    return await analyzeInvoiceFlow(input);
+  } catch (error: any) {
+    console.error("AI Analysis Error:", error);
+    throw new Error(`AI_ERROR: ${error.message || "Erreur inconnue lors de l'analyse"}`);
+  }
 }
 
 const prompt = ai.definePrompt({

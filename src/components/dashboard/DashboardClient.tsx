@@ -234,12 +234,17 @@ export default function DashboardClient({ carImageUrl, maintenanceTasks: initial
       const updatedExpenses = await fetchExpenses();
       setExpenses(updatedExpenses);
 
-    } catch (error) {
-      setInvoiceFeedback("Erreur lors de l'analyse. Veuillez réessayer.");
+    } catch (error: any) {
+      console.error("Analysis client error:", error);
+      const errorMessage = error.message?.includes("CONFIGURATION_ERROR")
+        ? "Erreur Config: " + error.message
+        : "Erreur lors de l'analyse. Veuillez réessayer.";
+
+      setInvoiceFeedback(errorMessage);
       toast({
         variant: "destructive",
         title: "Erreur d'analyse",
-        description: "L'IA n'a pas pu traiter ce document.",
+        description: error.message || "L'IA n'a pas pu traiter ce document.",
       });
     } finally {
       setIsScanning(false);
