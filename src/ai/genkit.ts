@@ -1,27 +1,32 @@
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
+import { logger, AppError, AppErrorCode } from '@/lib/error-handling';
 
 const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-console.log('[GENKIT DEBUG] Initializing Genkit...');
-console.log('[GENKIT DEBUG] Environment Model:', 'googleai/gemini-2.5-flash');
-console.log('[GENKIT DEBUG] API Key present?', !!apiKey);
-if (apiKey) console.log('[GENKIT DEBUG] API Key length:', apiKey.length);
-if (!apiKey) console.error('[GENKIT FATAL] No API Key found in environment variables (GOOGLE_GENAI_API_KEY, GOOGLE_API_KEY, GEMINI_API_KEY).');
+
+// Log initialization start
+logger.info('Initializing Genkit...', { component: 'genkit', model: 'googleai/gemini-2.5-flash' });
+
+if (apiKey) {
+  logger.debug('API Key present', { component: 'genkit', keyLength: apiKey.length });
+} else {
+  logger.error('No API Key found', undefined, { component: 'genkit', context: 'environment_variables' });
+}
 
 let aiInstance: any = null;
 
 try {
   if (!apiKey) {
-    console.warn('[GENKIT WARNING] No API Key found. AI features will fail at runtime.');
+    logger.warn('No API Key found. AI features will fail at runtime.', { component: 'genkit' });
   }
 
   aiInstance = genkit({
     plugins: [googleAI()],
     model: 'googleai/gemini-2.5-flash',
   });
-  console.log('[GENKIT SUCCESS] Genkit initialized successfully.');
+  logger.info('Genkit initialized successfully', { component: 'genkit' });
 } catch (error) {
-  console.error('[GENKIT FATAL] Failed to initialize Genkit:', error);
+  logger.error('Failed to initialize Genkit', error, { component: 'genkit' });
 }
 
 export const ai = aiInstance;

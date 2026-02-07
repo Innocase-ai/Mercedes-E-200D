@@ -30,21 +30,39 @@ const AnalyzeInvoiceOutputSchema = z.object({
 });
 export type AnalyzeInvoiceOutput = z.infer<typeof AnalyzeInvoiceOutputSchema>;
 
+import { AppError, AppErrorCode, logger } from '@/lib/error-handling';
+
 export async function analyzeInvoice(input: AnalyzeInvoiceInput): Promise<AnalyzeInvoiceOutput> {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+
   if (!apiKey) {
-    throw new Error("CONFIGURATION_ERROR: Clé API Google manquante sur le serveur. Veuillez ajouter GOOGLE_GENAI_API_KEY.");
+    throw new AppError(
+      AppErrorCode.CONFIG_MISSING,
+      "Clé API Google manquante sur le serveur. Veuillez ajouter GOOGLE_GENAI_API_KEY.",
+      500,
+      { component: 'invoice-analysis' }
+    );
   }
 
   if (!ai) {
-    throw new Error("INIT_ERROR: Le service AI n'a pas pu s'initialiser. Vérifiez les logs serveur.");
+    throw new AppError(
+      AppErrorCode.INTERNAL_ERROR,
+      "Le service AI n'a pas pu s'initialiser. Vérifiez les logs serveur.",
+      500,
+      { component: 'invoice-analysis' }
+    );
   }
 
   try {
-    return await analyzeInvoiceFlow(input);
+    logger.info('Starting invoice analysis', { component: 'invoice-analysis', inputLength: input.image.length });
+    const result = await analyzeInvoiceFlow(input);
+    logger.info('Invoice analysis completed', { component: 'invoice-analysis' });
+    return result;
   } catch (error: any) {
-    console.error("AI Analysis Error:", error);
-    throw new Error(`AI_ERROR: ${error.message || "Erreur inconnue lors de l'analyse"}`);
+    logger.error('AI Analysis Error', error, { component: 'invoice-analysis' });
+
+    // Convert generic Genkit errors to AppErrors if possible
+    throw AppError.fromError(error, AppErrorCode.AI_SERVICE_UNAVAILABLE);
   }
 }
 
