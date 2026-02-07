@@ -54,7 +54,7 @@ export async function analyzeInvoice(input: AnalyzeInvoiceInput): Promise<Analyz
   }
 
   try {
-    logger.info('Starting invoice analysis', { component: 'invoice-analysis', inputLength: input.image.length });
+    logger.info('Starting invoice analysis', { component: 'invoice-analysis', inputLength: input.invoiceDataUri.length });
     const result = await analyzeInvoiceFlow(input);
     logger.info('Invoice analysis completed', { component: 'invoice-analysis' });
     return result;
@@ -95,8 +95,9 @@ const analyzeInvoiceFlow = ai.defineFlow(
     inputSchema: AnalyzeInvoiceInputSchema,
     outputSchema: AnalyzeInvoiceOutputSchema,
   },
-  async input => {
+  async (input: AnalyzeInvoiceInput) => {
     const { output } = await prompt(input);
-    return output!;
+    if (!output) throw new Error("No output from invoice analysis");
+    return output;
   }
 );
