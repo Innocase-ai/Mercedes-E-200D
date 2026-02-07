@@ -66,7 +66,7 @@ const aiDiagnosisFlow = ai.defineFlow(
     inputSchema: AiDiagnosisInputSchema,
     outputSchema: AiDiagnosisOutputSchema,
   },
-  async input => {
+  async (input: AiDiagnosisInput) => {
     try {
       const { output } = await aiDiagnosisPrompt(input);
       if (!output) throw new Error("No output from diagnosis prompt");
